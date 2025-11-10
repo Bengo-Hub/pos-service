@@ -1,0 +1,26 @@
+# Build artefacts
+/bin/
+/build/
+/dist/
+*.exe
+
+# Test outputs
+/coverage.out
+/profile.out
+
+# IDE/editor files
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Environment / secrets
+.env
+.env.*
+/config/local.yaml
+
+# Generated content
+/docs/openapi/*
+/internal/ent/migrate/schema/*
+
+

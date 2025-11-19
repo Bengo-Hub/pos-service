@@ -1,16 +1,17 @@
-# POS Service Delivery Plan
+## POS Service Delivery Plan
 
-## Vision & Guiding Principles
-- Build a multi-tenant, cloud-ready Point-of-Sale backend that powers third-party outlets (cafés/bars, quick-service restaurants, supermarkets, ecommerce fulfilment/ecommerce shops, kitchen displays, kiosks) using the shared `tenant_slug` and outlet registry consumed by the food-delivery, inventory, logistics, and auth services.
+### 1. Vision & Guiding Principles
+- Build a multi-tenant, cloud-ready Point-of-Sale backend that powers third-party outlets (cafés/bars, quick-service restaurants, supermarkets, ecommerce fulfilment/ecommerce shops, kitchen displays, kiosks) using the shared `tenant_slug` and outlet registry consumed by the cafe-backend, inventory, logistics, and auth services.
 - Provide a composable API layer that can be embedded into client surfaces (web, mobile, kiosk, delivery app) while remaining extensible for partner ecosystems and white-label deployments.
 - Embrace an event-driven architecture so POS actions (sales, refunds, drawer activity, menu changes, stock events) propagate in real time to treasury, notifications, delivery, inventory, licensing, and analytics services.
 - Optimise for resilience and near-real-time operation even with intermittent connectivity through smart caching, queueing, offline queues, and automated sync jobs.
 - Treat subscription/licensing state as a first-class domain so feature availability, device limits, and renewal reminders are centrally managed and surfaced to administrators.
+- **Entity Ownership**: This service owns POS-specific entities: POS orders, devices, sessions, cash drawers, POS payments (references), promotions, gift cards, price books (outlet-specific overrides), table management, and bar tabs. **POS does NOT own**: catalog items (references inventory-service), users (references auth-service via `user_id`), payment processing (uses treasury-app APIs), inventory balances (queries inventory-service APIs). See `docs/cross-service-entity-ownership.md` for complete ownership matrix.
 
-## Technical Foundations
+### 2. Technical Foundations
 - **Language & Runtime:** Go 1.22+, strict gofmt, golangci-lint.
 - **Frameworks & Libraries:**
-  - HTTP transport with `chi` router, middleware stack mirroring the food-delivery backend for consistency.
+  - HTTP transport with `chi` router, middleware stack mirroring the cafe-backend for consistency.
   - Validation via `go-playground/validator`, configuration via `kelseyhightower/envconfig`.
   - `ent` ORM for schema-as-code modelling and migrations.
   - `pq`/`pgx` driver wrapped by `ent/dialect/sql` for PostgreSQL connectivity.
@@ -22,10 +23,11 @@
 - **Deployment:** Docker multi-stage builds, Helm charts, ArgoCD GitOps pipeline aligned with other services.
 - **Observability:** zap logging, Prometheus metrics, OpenTelemetry tracing, Tempo/Jaeger compatibility.
 - **Testing:** Go test (table-driven), Testcontainers for Postgres/Redis integration, k6 for performance validation.
+- **Auth-Service SSO Integration:** ✅ **COMPLETED** - Integrated `shared/auth-client` v0.1.0 library for production-ready JWT validation using JWKS from auth-service. All protected `/v1/{tenantID}` routes require valid Bearer tokens. Swagger documentation updated with BearerAuth security definition. **Deployment:** Uses monorepo `replace` directives with versioned dependency (`v0.1.0`). Go workspace (`go.work`) handles local development automatically. Each service has independent DevOps workflows and can be deployed separately while sharing the auth library. See `shared/auth-client/DEPLOYMENT.md` and `shared/auth-client/TAGGING.md` for details.
 
-## Core Capabilities & Domain Modules
+### 3. Core Capabilities & Domain Modules
 1. **Tenant & Outlet Management**
-   - Register tenants (franchises, merchant partners) and map POS outlets/locations using the shared tenant/outlet identifiers agreed across food-delivery, inventory, and logistics services. If an outlet does not exist locally, the service triggers a tenant discovery webhook to fetch authoritative data before persisting POS records.
+   - Register tenants (franchises, merchant partners) and map POS outlets/locations using the shared tenant/outlet identifiers agreed across cafe-backend, inventory, and logistics services. If an outlet does not exist locally, the service triggers a tenant discovery webhook to fetch authoritative data before persisting POS records.
    - Store configuration profiles (timezone, tax config, operating hours, supported tenders).
    - Manage device provisioning (register POS terminals/tablets/kiosks) while syncing device metadata with the common registry (no duplicate outlet tables downstream).
 
@@ -35,7 +37,7 @@
    - Session heartbeat tracking, forced logout, device-level permissions.
 
 3. **Catalog & Pricebook**
-   - Sync menu/product data from food-delivery backend or external ERP.
+   - Sync menu/product data from cafe-backend or external ERP.
    - Support multiple pricebooks per outlet (happy hour, wholesale, ecommerce, regional).
    - Local overrides, modifiers, bundles/combos, allergen/nutritional metadata, barcode/PLU mapping.
 
@@ -65,7 +67,7 @@
 
 9. **Promotions, Loyalty & Giftcards**
    - Apply promo codes, auto-discounts, membership pricing based on plan entitlements.
-   - Integrate with loyalty ledger from food-delivery backend for earn/burn operations.
+   - Integrate with loyalty ledger from cafe-backend for earn/burn operations.
    - Gift card issuance, redemption, and balance management.
 
 10. **Reporting & Analytics**
@@ -82,7 +84,7 @@
    - Record usage metrics (orders processed, integrations used) for overage billing.
    - Trigger renewal reminders, grace-period enforcement, and feature gating via notifications & treasury.
 
-## Scenario Coverage & Workflows
+### 4. Scenario Coverage & Workflows
 ### Café / Bar Service
 - Table, tab, and counter-order workflows with seat mapping, coursing, bartender-specific permissions, happy-hour scheduling, and split/merge bills.
 - Tip pooling, service charge management, age-restricted item prompts, and spill/waste tracking.
@@ -108,7 +110,21 @@
 - Manage third-party delivery connectors (Bolt, Uber, Glovo) via adaptor pattern.
 - Trigger notifications for delayed pickups, substitution approvals, and driver reassignment.
 
-## Integrations
+### 5. Integrations
+#### 5.1 Integration Points (endpoints/events)
+- Treasury:
+  - REST: `/v1/{tenant}/payments`, `/refunds`, `/payouts`
+  - Events: `payment_initiated`, `payment_captured`, `refund_processed`
+- Notifications:
+  - REST: `/v1/{tenant}/notify` (channels: sms,email,push)
+  - Events: `pos.order.ready`, `pos.cash_exception`, `pos.license.renewal_due`
+- Inventory:
+  - Webhooks: `inventory.low_stock`, `inventory.po.approved`
+  - REST: `/v1/{tenant}/inventory/consumption`, `/v1/{tenant}/transfers`
+- Logistics:
+  - Webhooks: `logistics.task.assigned`, `logistics.task.status.changed`
+  - REST: `/v1/{tenant}/handoff/{orderId}` for driver pickup confirmation
+  - Note: Align with inventory zone/branch policies to prefer nearest stock for click-and-collect and deliveries
 - **Treasury Service (`treasury-app`):**
   - Payment initiation (card tokens, MPesa STK push) and capture flows.
   - Settlement summaries, refund processing, ledger entry synchronization.
@@ -116,7 +132,7 @@
 - **Notifications Service (`notifications-app`):**
   - Push/SMS/email for order readiness, shift reminders, cash exceptions, stock alerts.
   - Multi-channel alerts for license renewals, integration failures.
-- **Food-Delivery Backend:**
+- **Cafe Backend:**
   - Shared catalog, menu items, loyalty accounts, customer profiles using canonical item IDs from inventory.
   - Delivery order status exchange (POS ready -> delivery dispatch) aligned with `logistics-service` task IDs and shared tenant/outlet registry.
   - Subscription entitlements to gate advanced POS features without duplicating entitlement tables.
@@ -136,8 +152,12 @@
   - Scheduling of periodic fiscal reports, receipt archiving, and enforcement of regulatory daily closures.
 - **Auth Service (`auth-service`):**
   - Supplies SSO tokens, role claims, and emits tenant/outlet discovery callbacks so POS can auto-provision metadata before processing sessions.
+- **Payment Gateways & Terminals:**
+  - Gateway providers (e.g., Stripe, MPesa, Flutterwave) and terminal providers (PAX, Verifone) via connector adapters.
+- **Ecommerce Platforms & Marketplaces:**
+  - Storefront order ingest, catalogue sync, and returns handling via provider registry.
 
-## System Architecture
+### 6. System Architecture
 - **API Layer:** RESTful endpoints versioned by tenant (`/v1/{tenant}/pos/...`) with OpenAPI docs. Optional ConnectRPC/gRPC for high-throughput operations (bulk sync, streaming events).
 - **Service Layer:** Clean/hexagonal architecture; domain services orchestrate business logic, interface adapters encapsulate I/O (treasury, notifications, delivery).
 - **Persistence Layer:** Ent-generated schemas, migrations via `ent/migrate`. Soft deletes where required (orders, catalog).
@@ -149,7 +169,7 @@
 - **Configuration Management:** Tenant-level configuration stored in Postgres (`pos_configurations`, `integration_settings` tables aligned with backend ERD updates).
 - **Webhook Fabric:** All integrations (treasury settlements, inventory consumption, logistics handoffs, tenant/outlet discovery) rely on signed HTTP callbacks with retries rather than polling endpoints.
 
-## Data Model Highlights (in addition to existing ERD)
+### 7. Data Model Highlights (in addition to existing ERD)
 - `pos_stations`, `pos_devices`, `pos_device_sessions` for hardware tracking.
 - `pos_orders`, `pos_order_lines`, `pos_order_events` dedicated to POS context (with cross-links to `orders` in delivery backend via `pos_order_links`).
 - `cash_drawers`, `cash_drawer_events` for cash management.
@@ -161,62 +181,82 @@
 - `pos_license_usages`, `pos_subscription_states` mirroring subscription entitlements for fast lookup.
 - `barcode_catalog_entries`, `weigh_scale_readings` for retail integrations.
 - `offline_event_queue`, `offline_event_replay` supporting offline-first reconciliation.
+- `provider_credentials` (encrypted at rest), `provider_configs` for gateways, terminals, ecommerce, fiscal/regulatory connectors.
 
-## Cross-Cutting Concerns
+### 8. Cross-Cutting Concerns
 - **Security:** JWT/OAuth tokens validated via identity service, optional mTLS for internal calls, audit logging for privileged actions.
-- **Multi-tenancy:** Row-level scoping by `tenant_id`; connection pooling per tenant to Postgres for future sharding; outlets/devices reference the shared registry used by food-delivery, inventory, and logistics so tenants manage locations once.
+- **Multi-tenancy:** Row-level scoping by `tenant_id`; connection pooling per tenant to Postgres for future sharding; outlets/devices reference the shared registry used by cafe-backend, inventory, and logistics so tenants manage locations once.
 - **Configuration & Feature Flags:** Subscription entitlements drive dynamic configuration delivered to client applications; tenant-level feature switches exposed via admin UI.
 - **Resilience:** Circuit breakers for external services (treasury, notifications); retry policies with exponential backoff; offline-first queue with reconciliation playbooks.
 - **Compliance:** Sales tax handling per locale, ETR integration roadmap, digital receipt storage, GDPR-compliant data export/delete endpoints.
 - **Operational Telemetry:** Standard event schema (`pos.order.created`, `pos.cashdrawer.closed`, `pos.subscription.renewal_due`) for downstream analytics and observability dashboards.
+- **Configuration & Secrets Management:** Tenant-level provider registry with encrypted secrets (envelope/KMS). Secrets redacted in reads, rotation jobs scheduled, audit trails enabled. Config precedence: env defaults → tenant-level override → flags.
 
-## API Strategy
+### 9. API Strategy
 - **Contracts:** OpenAPI specs (`docs/openapi/pos.yaml`) generated from annotations; published to Stoplight/Postman shared workspace.
 - **Versioning:** Semantic versioned endpoints, with backward compatibility window.
 - **SDKs:** Auto-generated Go/TypeScript client libraries for internal consumers.
 - **Webhooks:** Tenant-configurable webhooks for POS events (order complete, drawer closed) with HMAC signatures.
+ - **Provider configuration & secrets APIs:**
+   - `/v1/{tenant}/integrations/providers` (list/configure: gateways, terminals, ecommerce, fiscal/regulatory)
+   - `/v1/{tenant}/integrations/providers/{provider}/config` (GET/PUT) with encryption-at-rest and redaction on reads
+   - `/v1/{tenant}/integrations/events` (ingest/monitor connector failures), `/v1/{tenant}/exports/schedules` (report feeds)
 
-## Deployment & Environments
+### 10. Deployment & Environments
 - **Local Development:** Run Postgres/Redis via docker-compose; service on port 4100 (HTTP). Makefile targets (`make run`, `make migrate`, `make seed`).
 - **Staging/Production:** Kubernetes deployment with horizontal pod autoscaling; environment variables injected via Vault/Secrets Manager.
 - **CI/CD:** GitHub Actions pipeline running lint/test/build, container publish, helm chart packaging. Automated integration tests hitting staging endpoints.
 
-## Testing & Quality Strategy
+### 11. Testing & Quality Strategy
 - Unit tests for domain services (table-driven).
 - Integration tests spinning up Postgres/Redis (Testcontainers).
 - Contract tests with consumer-driven approach (Pact) for treasury and notifications.
 - Performance tests (k6) simulating high-volume POS transactions during peak hours.
 - Chaos tests to validate offline queue behaviour and circuit breaker thresholds.
 
-## Delivery Roadmap (Suggested Sprints)
+### 12. Delivery Roadmap (Suggested Sprints)
 1. **Sprint 0 – Foundations (Week 1)**
-   - Repo scaffolding, configuration loader, logging/metrics bootstrap.
-   - Base health endpoints, CI/CD pipeline, OpenAPI boilerplate.
-   - Ent schema initialisation: tenants, outlets, devices, users.
+   - [ ] Repo scaffolding, configuration loader, logging/metrics bootstrap.
+   - [ ] Health/liveness endpoints, CI/CD pipeline, OpenAPI boilerplate.
+   - [ ] Ent schema initialisation: tenants, outlets, devices, users; auth-service JWT middleware and RBAC seed.
+   - [ ] Helm chart with HPA/VPA defaults; secrets & env management.
 2. **Sprint 1 – Identity & Device Sessions (Weeks 2-3)**
-   - RBAC roles, device registration, session APIs, Redis session cache.
-   - Subscription entitlement service scaffolding for POS features.
+   - [ ] RBAC roles, device registration, session APIs, Redis session cache.
+   - [ ] Subscription entitlement hooks for POS feature gating.
+   - [ ] Device management endpoints; session timeout/force logout.
 3. **Sprint 2 – Catalog & Pricebook Sync (Weeks 4-5)**
-   - Catalog import from backend, local overrides, pricebook endpoints.
-   - POS station configuration settings.
+   - [ ] Catalog import/sync, local overrides, pricebook endpoints.
+   - [ ] POS station configuration; offline sync routines.
+   - [ ] Metrics for sync latency/errors; dashboards.
 4. **Sprint 3 – Order Capture & Ticketing (Weeks 6-7)**
-   - POS order APIs, ticket status events, link to kitchen/delivery flows.
-   - WebSocket/SSE for real-time order updates.
+   - [ ] POS order APIs, ticket status events, real-time updates via WS/SSE.
+   - [ ] Dine-in/table/queue workflows; split bills; modifiers/combos.
+   - [ ] HPA tuned with custom metrics (orders/sec, p95 latency).
 5. **Sprint 4 – Tendering & Treasury Integration (Weeks 8-9)**
-   - Cash drawer module, tender APIs, treasury integration (payment intents, refunds, chargebacks).
-   - Cash variance reporting, tip pooling, and initial fiscal compliance hooks.
+   - [ ] Cash drawer module, tenders, refunds/chargebacks via treasury.
+   - [ ] Tip pooling/variance reporting; initial fiscal compliance hooks.
+   - [ ] PCI/PII controls; audit logs for privileged actions.
 6. **Sprint 5 – Inventory & Promotions (Weeks 10-11)**
-   - Stock deductions, adjustments, low-stock alerts via notifications, transfer workflows.
-   - Promotions, discounts, loyalty integration hooks, membership pricing.
+   - [ ] Stock deductions, adjustments, low-stock alerts via notifications.
+   - [ ] Promotions/discounts, loyalty integration hooks, membership pricing.
+   - [ ] KEDA queue-driven scaling for workers; VPA recommendations applied.
 7. **Sprint 6 – Ecommerce & POS Gateway Sync (Weeks 12-13)**
-   - POS integration APIs (connections, sync jobs), omnichannel order ingest, barcode/scale support.
-   - Outbox dispatcher for external systems, offline reconciliation routines, error handling dashboards.
-8. **Sprint 7 – Reporting, Compliance & Hardening (Weeks 14-15)**
-   - Reports API, export jobs, audit logs, security hardening, backup job scheduling, subscription renewal workflows.
-9. **Sprint 8 – Launch & Handover (Week 16)**
-   - Production readiness, runbooks, monitoring dashboards, post-launch support plan.
+   - [ ] POS integration APIs (connections, sync jobs), omnichannel order ingest.
+   - [ ] Barcode/scale support, offline reconciliation, error dashboards.
+   - [ ] Outbox dispatcher for external systems with DLQ and retries.
+8. **Sprint 7 – Provider Registry & External Connectors (Weeks 14-15)**
+   - [ ] Tenant provider registry (gateways, terminals, ecommerce, fiscal/regulators) with encrypted secrets.
+   - [ ] `/integrations/providers` API; redaction/rotation; connector health endpoints.
+   - [ ] Monitoring/alerts for connector errors; backpressure controls.
+9. **Sprint 8 – Reporting, Compliance & Hardening (Weeks 16-17)**
+   - [ ] Reports API, export jobs, audit logs, security hardening.
+   - [ ] Backup scheduling, disaster recovery runbooks, chaos tests.
+   - [ ] Performance/load tuning; HA testing.
+10. **Sprint 9 – Launch & Handover (Week 18)**
+    - [ ] Production readiness, runbooks, dashboards, support plan.
+    - [ ] Tenant onboarding playbooks; migration/backfills; SLOs/alerts.
 
-## Backlog & Future Enhancements
+### 13. Backlog & Future Enhancements
 - Offline-first mode with local persistence on POS devices and conflict resolution.
 - Advanced analytics (AI-driven forecasting, labour optimisation).
 - Tip pooling, service charge management, tax integration with local regulators.
@@ -231,3 +271,13 @@
 
 **Next Steps:** Finalise detailed ERD extensions for subscription/licensing and POS tables, align API contracts with treasury/notifications/delivery teams, document POS<>POS gateway event payloads, and schedule Sprint 0 kickoff after stakeholder approval.
 
+### 14. Glossary & Acronyms (Plain‑English Reference)
+- POS (Point of Sale): System to record sales transactions in retail, hospitality, etc.
+- SKU (Stock Keeping Unit): Unique identifier for a product variant.
+- ERP (Enterprise Resource Planning): System managing finance, inventory, sales, etc.
+- KDS (Kitchen Display System): Digital display for kitchen orders and status.
+- PCI DSS (Payment Card Industry Data Security Standard): Security standard for handling cardholder data.
+- 3‑D Secure (3DS) / Strong Customer Authentication (SCA): Extra verification for card payments.
+- MPesa (Daraja): Mobile money platform and its API for collections/payouts; STK Push prompts payment on user’s phone.
+- API / REST / gRPC / OpenAPI / Webhook: Programmatic interfaces and protocols; see Logistics “Glossary” for definitions.
+- Postgres, Redis, Kafka/NATS, Kubernetes/Helm/Argo CD, Prometheus/Grafana, OpenTelemetry: Data, messaging, deployment, and observability stack; see Logistics “Glossary” for concise descriptions.

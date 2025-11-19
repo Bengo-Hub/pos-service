@@ -15,7 +15,7 @@ Schemas are defined with Ent to ensure type-safe access and migration automation
 
 | Table | Key Columns | Description |
 |-------|-------------|-------------|
-| `tenants` | `id`, `slug`, `name`, `status`, `plan_code`, `created_at`, `updated_at` | POS-enabled organisations sharing the canonical `tenant_slug` with food-delivery, inventory, and logistics services. Entitlements verified against subscription service. |
+| `tenants` | `id`, `slug`, `name`, `status`, `plan_code`, `created_at`, `updated_at` | POS-enabled organisations sharing the canonical `tenant_slug` with cafe-backend, inventory, and logistics services. Entitlements verified against subscription service. |
 | `outlets` | `id`, `tenant_id`, `tenant_slug`, `code`, `name`, `channel_type`, `address_json`, `timezone`, `status`, `opened_at`, `closed_at` | Physical/virtual POS outlets (café, kiosk, ecommerce hub) from the shared outlet registry. |
 | `outlet_settings` | `outlet_id (PK)`, `receipts_json`, `tax_config_json`, `service_charge_json`, `opening_hours_json`, `metadata`, `updated_at` | Outlet-specific configuration. |
 | `pos_devices` | `id`, `tenant_id`, `outlet_id`, `device_code`, `device_type`, `status`, `hardware_fingerprint`, `registered_at`, `last_seen_at`, `metadata` | POS terminals/tablets/kiosks. |
@@ -82,15 +82,13 @@ Schemas are defined with Ent to ensure type-safe access and migration automation
 | `inventory_snapshots` | `id`, `tenant_id`, `outlet_id`, `item_id`, `on_hand`, `available`, `snapshot_at`, `source_service` | Read-only cached view of inventory for UI performance (not canonical). |
 
 ## Ecommerce & Omnichannel
-
 | Table | Key Columns | Description |
 |-------|-------------|-------------|
 | `channel_integrations` | `id`, `tenant_id`, `channel_type`, `config_json`, `status`, `last_sync_at`, `metadata` | Ecommerce, marketplace, and kiosk connectors. |
 | `channel_sync_jobs` | `id`, `channel_integration_id`, `sync_type`, `status`, `started_at`, `finished_at`, `items_processed`, `error_message` | Audit log of sync operations. |
-| `order_links` | `id`, `tenant_id`, `pos_order_id`, `external_order_id`, `source_service`, `synced_at`, `sync_status`, `metadata` | Link to food-delivery backend or other channels. |
+| `order_links` | `id`, `tenant_id`, `pos_order_id`, `external_order_id`, `source_service`, `synced_at`, `sync_status`, `metadata` | Link to cafe-backend or other channels. |
 
 ## Reporting & Compliance
-
 | Table | Key Columns | Description |
 |-------|-------------|-------------|
 | `till_reports` | `id`, `tenant_id`, `outlet_id`, `device_id`, `report_date`, `opening_float`, `closing_amount`, `cash_variance`, `tender_breakdown_json`, `generated_by`, `generated_at` | End-of-day cash/tender summary. |
@@ -99,32 +97,38 @@ Schemas are defined with Ent to ensure type-safe access and migration automation
 | `regulatory_exports` | `id`, `tenant_id`, `export_type`, `period_start`, `period_end`, `status`, `file_url`, `requested_by`, `requested_at`, `completed_at`, `metadata` | Fiscal authority exports / ETR submissions. |
 
 ## Integrations & Eventing
-
 | Table | Key Columns | Description |
 |-------|-------------|-------------|
-| `integration_settings` | `id`, `tenant_id`, `service_code`, `config_json`, `status`, `last_sync_at`, `metadata` | Config for treasury, inventory, food-delivery backend, notifications. |
+| `integration_settings` | `id`, `tenant_id`, `service_code`, `config_json`, `status`, `last_sync_at`, `metadata` | Config for treasury, inventory, cafe-backend, notifications. |
 | `webhook_subscriptions` | `id`, `tenant_id`, `event_key`, `target_url`, `secret`, `status`, `last_delivery_status`, `retry_count` | Outbound webhooks (order complete, drawer closed, stock alert). |
 | `outbox_events` | `id`, `tenant_id`, `aggregate_type`, `aggregate_id`, `event_type`, `payload`, `status`, `attempts`, `last_attempt_at`, `created_at` | Reliable event dispatcher for NATS/Kafka. |
 | `sync_failures` | `id`, `tenant_id`, `integration_code`, `error_code`, `payload`, `occurred_at`, `resolved_at`, `metadata` | Error tracking to surface in admin console. |
-| `tenant_sync_events` | `id`, `tenant_id`, `tenant_slug`, `source_service`, `payload`, `synced_at`, `status` | Tracks inbound tenant/outlet discovery requests (e.g., from auth or food-delivery) before devices/orders are created. |
+| `tenant_sync_events` | `id`, `tenant_id`, `tenant_slug`, `source_service`, `payload`, `synced_at`, `status` | Tracks inbound tenant/outlet discovery requests (e.g., from auth or cafe-backend) before devices/orders are created. |
 
 ## Relationships & External Services
 
-- `pos_orders` connect to `order_links` for references in food delivery backend; no duplication of order state there because both sides share the tenant/outlet registry, hydrated via discovery webhooks when a tenant/outlet first appears.
-- Tenant/outlet discovery callbacks from auth/food-delivery ensure this service can provision outlets/devices on demand without manual synchronisation or polling.
+**Entity Ownership**: This service owns POS-specific entities. It references (but does not own) entities from other services:
+- **Users**: References `user_id` from `auth-service` (never stores user accounts)
+- **Tenants/Outlets**: References `tenant_id`, `tenant_slug`, `outlet_id` from `auth-service` registry
+- **Catalog Items**: References `item_id`/`sku` from `inventory-service` (stores `catalog_items` as read-only cache)
+- **Inventory Balances**: Queries `inventory-service` APIs (stores `inventory_snapshots` as read-only cache)
+- **Payments**: Calls `treasury-app` APIs (stores `pos_payments` as references, not full transactions)
+- **Riders/Drivers**: Queries `logistics-service` APIs (never stores rider data)
+
+- `pos_orders` connect to `order_links` for references in cafe-backend; no duplication of order state there because both sides share the tenant/outlet registry, hydrated via discovery webhooks when a tenant/outlet first appears.
+- Tenant/outlet discovery callbacks from auth/cafe-backend ensure this service can provision outlets/devices on demand without manual synchronisation or polling.
 - `user_pos_roles.user_id` references identities from `auth-service` (token claims drive UI permissions).
 - `stock_consumption_events` push to `inventory-service`; canonical stock levels remain in inventory.
 - `pos_payments` integrate with `treasury-app` for payment authorization, settlement, and refunds.
 - Notifications (drawer discrepancies, stock alerts) route through `notifications-app`.
 - `channel_integrations` coordinate with ecommerce storefronts and logistics service for click-and-collect workflows.
+- See `docs/cross-service-entity-ownership.md` for complete entity ownership matrix and integration patterns.
 
 ## Seed & Defaults
-
 - Default roles: `cashier`, `supervisor`, `manager`, `inventory_clerk`.
 - Demo outlets (flagship café, express kiosk) seeded for QA.
 - Standard tenders (cash, card, Mpesa, loyalty) and example price book configured for demonstrations.
 
 ---
-
 Regenerate this ERD whenever Ent schemas evolve. Always run `go generate ./internal/ent` before committing schema changes and update integration docs accordingly.
 

@@ -1,0 +1,83 @@
+openapi: 3.0.0
+info:
+  title: POS Service API
+  description: HTTP API for the BengoBox POS service. Provides point-of-sale operations, order management, and cash drawer management.
+  version: 0.1.0
+  contact:
+    name: BengoBox Support
+servers:
+  - url: https://pos.codevertex.local
+    description: Local development server (HTTPS)
+  - url: https://pos.codevrtexitsolutions.com
+    description: Production server
+paths:
+  /healthz:
+    get:
+      tags:
+        - Health
+      summary: Service liveness probe
+      description: Returns OK when the POS API process is running.
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+                    example: pos-service
+  /readyz:
+    get:
+      tags:
+        - Health
+      summary: Readiness probe
+      description: Validates connectivity to Postgres, Redis, and NATS backends.
+      responses:
+        '200':
+          description: Service is ready
+        '503':
+          description: Service dependencies unavailable
+  /metrics:
+    get:
+      tags:
+        - Health
+      summary: Prometheus metrics
+      description: Exposes Prometheus metrics for scraping.
+      responses:
+        '200':
+          description: Prometheus metrics payload
+  /v1/{tenantID}/pos/orders:
+    get:
+      tags:
+        - POS
+      summary: List POS orders
+      description: Returns a list of POS orders for the specified tenant.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: tenantID
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Tenant identifier
+      responses:
+        '200':
+          description: List of POS orders
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from auth-service. Format: Bearer {token}
+

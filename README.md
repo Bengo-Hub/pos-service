@@ -1,12 +1,12 @@
 # POS Service
 
-The POS Service delivers a configurable, multi-tenant point-of-sale backend for cafés/bars, retail outlets, kitchens, kiosks, and ecommerce counters within the BengoBox ecosystem, built on the shared `tenant_slug` and outlet registry used by food-delivery, inventory, logistics, treasury, and auth services.
+The POS Service delivers a configurable, multi-tenant point-of-sale backend for cafés/bars, retail outlets, kitchens, kiosks, and ecommerce counters within the BengoBox ecosystem, built on the shared `tenant_slug` and outlet registry used by cafe-backend, inventory, logistics, treasury, and auth services.
 
 ## Core Capabilities
 
 - Outlet/device provisioning and session control.
 - POS-specific RBAC, cashier workflows, and licensing enforcement.
-- Catalog synchronisation with inventory/food-delivery services, price book management, modifiers, and promotion rules.
+- Catalog synchronisation with inventory/cafe-backend services, price book management, modifiers, and promotion rules.
 - Order/ticket lifecycle with table management, bar tabs, and kiosk flows.
 - Tendering and cash drawer management integrated with treasury services.
 - Real-time stock consumption events and alerts via inventory service.

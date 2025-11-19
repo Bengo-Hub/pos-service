@@ -19,6 +19,10 @@
 .env.*
 /config/local.yaml
 
+# TLS certificates (mkcert generated)
+/config/certs/*.pem
+/config/certs/*.key
+
 # Generated content
 /docs/openapi/*
 /internal/ent/migrate/schema/*

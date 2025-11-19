@@ -7,7 +7,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap"
 
 	handlers "github.com/bengobox/pos-service/internal/http/handlers"
@@ -37,9 +36,12 @@ func New(log *zap.Logger, health *handlers.HealthHandler, authMiddleware *authcl
 	r.Get("/healthz", health.Liveness)
 	r.Get("/readyz", health.Readiness)
 	r.Get("/metrics", health.Metrics)
-	r.Get("/v1/docs/*", httpSwagger.WrapHandler)
+	r.Get("/v1/docs/*", handlers.SwaggerUI)
 
 	r.Route("/api/v1", func(api chi.Router) {
+		// Serve OpenAPI spec (public, no auth required)
+		api.Get("/openapi.json", handlers.OpenAPIJSON)
+		
 		// Apply auth middleware to all v1 routes
 		if authMiddleware != nil {
 			api.Use(authMiddleware.RequireAuth)

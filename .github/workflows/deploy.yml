@@ -1,0 +1,138 @@
+name: Build and Deploy POS Service
+
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install DevOps Tools
+        uses: Bengo-Hub/devops-k8s/.github/actions/install-devops-tools@main
+
+      - name: Set deployment variables
+        run: |
+          echo "DEPLOY=true" >> $GITHUB_ENV
+          echo "SETUP_DATABASES=true" >> $GITHUB_ENV
+          echo "DB_TYPES=postgres,redis" >> $GITHUB_ENV
+          echo "NAMESPACE=pos" >> $GITHUB_ENV
+          echo "ENV_SECRET_NAME=pos-service-secrets" >> $GITHUB_ENV
+          echo "REGISTRY_SERVER=docker.io" >> $GITHUB_ENV
+          echo "REGISTRY_NAMESPACE=codevertex" >> $GITHUB_ENV
+          echo "VALUES_FILE_PATH=apps/pos-service/values.yaml" >> $GITHUB_ENV
+          echo "APP_NAME=pos-service" >> $GITHUB_ENV
+
+      - name: Run production deployment
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+          GIT_TOKEN: ${{ secrets.GIT_TOKEN }}
+          GH_PAT: ${{ secrets.GH_PAT }}
+          GIT_SECRET: ${{ secrets.GIT_SECRET }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          GITHUB_SHA: ${{ github.sha }}
+          DEPLOY: true
+          SETUP_DATABASES: true
+          DB_TYPES: postgres,redis
+          NAMESPACE: pos
+          ENV_SECRET_NAME: pos-service-secrets
+          REGISTRY_SERVER: docker.io
+          REGISTRY_NAMESPACE: codevertex
+          VALUES_FILE_PATH: apps/pos-service/values.yaml
+          APP_NAME: pos-service
+          GIT_USER: ${{ secrets.GIT_USER || 'POS Bot' }}
+          GIT_EMAIL: ${{ secrets.GIT_EMAIL || 'dev@bengobox.com' }}
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Tag and push :latest
+        if: success()
+        env:
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          REGISTRY_SERVER: docker.io
+          REGISTRY_NAMESPACE: codevertex
+        run: |
+          set -e
+          IMAGE_REPO="${REGISTRY_SERVER}/${REGISTRY_NAMESPACE}/pos-service"
+          SHORT_SHA=${GITHUB_SHA::8}
+          echo "Tagging ${IMAGE_REPO}:${SHORT_SHA} as :latest"
+          echo "$REGISTRY_PASSWORD" | docker login "$REGISTRY_SERVER" -u "$REGISTRY_USERNAME" --password-stdin
+          docker pull "${IMAGE_REPO}:${SHORT_SHA}" || true
+          docker tag "${IMAGE_REPO}:${SHORT_SHA}" "${IMAGE_REPO}:latest"
+          docker push "${IMAGE_REPO}:latest"
+
+      - name: Check ArgoCD Application status
+        if: success()
+        env:
+          KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG }}
+          NS: pos
+          APP_NAME: pos-service
+        run: |
+          if [ -z "${KUBE_CONFIG_B64}" ]; then
+            echo "⏭️ Skipping ArgoCD check - no KUBE_CONFIG available"
+            exit 0
+          fi
+
+          echo "::group::ArgoCD Application Status"
+          mkdir -p ~/.kube
+          echo "$KUBE_CONFIG_B64" | base64 -d > ~/.kube/config
+
+          if kubectl get application ${APP_NAME} -n argocd >/dev/null 2>&1; then
+            echo "✓ ArgoCD Application '${APP_NAME}' found"
+            kubectl patch application ${APP_NAME} -n argocd --type merge -p '{"metadata":{"annotations":{"argocd.argoproj.io/refresh":"hard"}}}' || true
+            SYNC_STATUS=$(kubectl get application ${APP_NAME} -n argocd -o jsonpath='{.status.sync.status}' 2>/dev/null || echo "Unknown")
+            HEALTH_STATUS=$(kubectl get application ${APP_NAME} -n argocd -o jsonpath='{.status.health.status}' 2>/dev/null || echo "Unknown")
+            echo "Current Status - Sync: ${SYNC_STATUS}, Health: ${HEALTH_STATUS}"
+          else
+            echo "⚠️ ArgoCD Application '${APP_NAME}' not found"
+            echo "Trigger provisioning: gh workflow run provision.yml --repo Bengo-Hub/devops-k8s"
+          fi
+          echo "::endgroup::"
+
+      - name: Verify API health
+        if: success()
+        env:
+          KUBE_CONFIG_B64: ${{ secrets.KUBE_CONFIG }}
+          NS: pos
+        run: |
+          if [ -z "${KUBE_CONFIG_B64}" ]; then
+            echo "⏭️ Skipping health check - no KUBE_CONFIG available"
+            exit 0
+          fi
+
+          echo "::group::Health check"
+          mkdir -p ~/.kube
+          echo "$KUBE_CONFIG_B64" | base64 -d > ~/.kube/config
+
+          if kubectl get deployment pos-service-app -n ${NS} >/dev/null 2>&1; then
+            kubectl rollout status deployment/pos-service-app -n ${NS} --timeout=300s
+            HOSTS=$(kubectl get ingress -n ${NS} -o jsonpath='{.items[*].spec.rules[*].host}' | tr ' ' '\n' | grep -E 'pos' || true)
+            if [ -n "$HOSTS" ]; then
+              for H in $HOSTS; do
+                echo "Checking https://$H/healthz ..."
+                if curl -sk --max-time 10 "https://$H/healthz" | grep -qi "ok"; then
+                  echo "✅ Health OK for $H"
+                  break
+                fi
+              done
+            else
+              echo "No ingress host found; skipping external health probe"
+            fi
+          else
+            echo "Deployment not found yet - ArgoCD may still be syncing"
+          fi
+          echo "::endgroup::"
+

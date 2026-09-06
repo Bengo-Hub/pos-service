@@ -175,11 +175,10 @@ func (h *PromotionHandler) GetPromotion(w http.ResponseWriter, r *http.Request) 
 }
 
 type createPromoInput struct {
-	PromoCode  string     `json:"promoCode"`
-	Name       string     `json:"name"`
-	StartAt    *time.Time `json:"startAt"`
-	EndAt      *time.Time `json:"endAt"`
-	UsageLimit int        `json:"usageLimit"`
+	PromoCode string     `json:"promoCode"`
+	Name      string     `json:"name"`
+	StartAt   *time.Time `json:"startAt"`
+	EndAt     *time.Time `json:"endAt"`
 	// Snake-case aliases: the frontends serialize start_at/end_at/promo_code (mirroring the
 	// ent READ shape), while the original fields above keep the legacy camelCase contract.
 	// Without these, one-time promotion dates sent as start_at/end_at were silently dropped
@@ -456,9 +455,9 @@ func (h *PromotionHandler) ApplyPromoCode(w http.ResponseWriter, r *http.Request
 	}
 
 	var input struct {
-		PromoCode string                 `json:"promoCode"`
-		OutletID  string                 `json:"outlet_id"`
-		Lines     []applyPromoLineInput  `json:"lines"`
+		PromoCode string                `json:"promoCode"`
+		OutletID  string                `json:"outlet_id"`
+		Lines     []applyPromoLineInput `json:"lines"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		jsonError(w, "invalid request body", http.StatusBadRequest)

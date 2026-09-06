@@ -179,6 +179,11 @@ func New(
 		if serviceConfig != nil && authMiddleware != nil {
 			api.Group(func(admin chi.Router) {
 				admin.Use(authMiddleware.RequireAuth)
+				// Platform-wide + per-tenant-override service config - platform-owner only.
+				// ServiceConfigHandler's own doc comment says the caller must apply this gate;
+				// it wasn't wired here (found in a 2026-09-06 pricing/tiering audit) even
+				// though every sibling platform-admin route below already does.
+				admin.Use(requirePlatformOwner)
 				serviceConfig.RegisterAdminRoutes(admin)
 
 				// Platform-default backup destination (OneDrive/GDrive/S3/WebDAV/

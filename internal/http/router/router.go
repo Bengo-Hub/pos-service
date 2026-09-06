@@ -1335,6 +1335,11 @@ func New(
 						t.Get("/discounts", promotions.S2SListDiscounts)
 						t.Post("/discounts", promotions.S2SCreateDiscount)
 						t.Post("/discounts/apply", promotions.S2SApplyDiscount)
+						// Real usage-cap reservation for the online checkout (2026-09-06/07
+						// redemption-cap work) -- ordering-backend calls this at real
+						// order-creation time; pos-api's own order creation calls
+						// promotions.Service.ReserveRedemption directly (same binary).
+						t.Post("/discounts/{promoId}/reserve", promotions.S2SReserveRedemption)
 						// Storefront marketing banners — promotions flagged via metadata["banner"]
 						// .show_on_storefront, consumed by ordering-frontend's banner widget.
 						t.Get("/discounts/banners", promotions.S2SListBanners)

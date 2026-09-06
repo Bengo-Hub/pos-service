@@ -46,8 +46,12 @@ type Promotion struct {
 	// EndAt holds the value of the "end_at" field.
 	EndAt *time.Time `json:"end_at,omitempty"`
 	// Metadata holds the value of the "metadata" field.
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
-	selectValues sql.SelectValues
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+	// Total redemption cap across all channels combined; nil/0 = unlimited
+	UsageLimit *int `json:"usage_limit,omitempty"`
+	// Per-customer redemption cap, matched by phone/customer key; nil/0 = unlimited
+	MaxUnitsPerCustomer *int `json:"max_units_per_customer,omitempty"`
+	selectValues        sql.SelectValues
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -61,6 +65,8 @@ func (*Promotion) scanValues(columns []string) ([]any, error) {
 			values[i] = new([]byte)
 		case promotion.FieldAutoApply:
 			values[i] = new(sql.NullBool)
+		case promotion.FieldUsageLimit, promotion.FieldMaxUnitsPerCustomer:
+			values[i] = new(sql.NullInt64)
 		case promotion.FieldName, promotion.FieldDescription, promotion.FieldPromoCode, promotion.FieldPromoKind, promotion.FieldWindowStart, promotion.FieldWindowEnd, promotion.FieldStatus:
 			values[i] = new(sql.NullString)
 		case promotion.FieldStartAt, promotion.FieldEndAt:
@@ -179,6 +185,20 @@ func (_m *Promotion) assignValues(columns []string, values []any) error {
 					return fmt.Errorf("unmarshal field metadata: %w", err)
 				}
 			}
+		case promotion.FieldUsageLimit:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field usage_limit", values[i])
+			} else if value.Valid {
+				_m.UsageLimit = new(int)
+				*_m.UsageLimit = int(value.Int64)
+			}
+		case promotion.FieldMaxUnitsPerCustomer:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for field max_units_per_customer", values[i])
+			} else if value.Valid {
+				_m.MaxUnitsPerCustomer = new(int)
+				*_m.MaxUnitsPerCustomer = int(value.Int64)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -262,6 +282,16 @@ func (_m *Promotion) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("metadata=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Metadata))
+	builder.WriteString(", ")
+	if v := _m.UsageLimit; v != nil {
+		builder.WriteString("usage_limit=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
+	builder.WriteString(", ")
+	if v := _m.MaxUnitsPerCustomer; v != nil {
+		builder.WriteString("max_units_per_customer=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteByte(')')
 	return builder.String()
 }

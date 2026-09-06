@@ -222,6 +222,9 @@ type Promotion func(*sql.Selector)
 // PromotionApplication is the predicate function for promotionapplication builders.
 type PromotionApplication func(*sql.Selector)
 
+// PromotionRedemption is the predicate function for promotionredemption builders.
+type PromotionRedemption func(*sql.Selector)
+
 // PromotionRule is the predicate function for promotionrule builders.
 type PromotionRule func(*sql.Selector)
 

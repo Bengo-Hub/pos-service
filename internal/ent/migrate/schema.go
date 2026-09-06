@@ -2361,6 +2361,8 @@ var (
 		{Name: "start_at", Type: field.TypeTime},
 		{Name: "end_at", Type: field.TypeTime, Nullable: true},
 		{Name: "metadata", Type: field.TypeJSON},
+		{Name: "usage_limit", Type: field.TypeInt, Nullable: true},
+		{Name: "max_units_per_customer", Type: field.TypeInt, Nullable: true},
 	}
 	// PromotionsTable holds the schema information for the "promotions" table.
 	PromotionsTable = &schema.Table{
@@ -2381,6 +2383,40 @@ var (
 		Name:       "promotion_applications",
 		Columns:    PromotionApplicationsColumns,
 		PrimaryKey: []*schema.Column{PromotionApplicationsColumns[0]},
+	}
+	// PromotionRedemptionsColumns holds the columns for the "promotion_redemptions" table.
+	PromotionRedemptionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "tenant_id", Type: field.TypeUUID},
+		{Name: "promotion_id", Type: field.TypeUUID},
+		{Name: "customer_key", Type: field.TypeString, Nullable: true},
+		{Name: "channel", Type: field.TypeEnum, Enums: []string{"pos", "ordering"}},
+		{Name: "order_id", Type: field.TypeString},
+		{Name: "quantity", Type: field.TypeFloat64},
+		{Name: "created_at", Type: field.TypeTime},
+	}
+	// PromotionRedemptionsTable holds the schema information for the "promotion_redemptions" table.
+	PromotionRedemptionsTable = &schema.Table{
+		Name:       "promotion_redemptions",
+		Columns:    PromotionRedemptionsColumns,
+		PrimaryKey: []*schema.Column{PromotionRedemptionsColumns[0]},
+		Indexes: []*schema.Index{
+			{
+				Name:    "promotionredemption_tenant_id_promotion_id",
+				Unique:  false,
+				Columns: []*schema.Column{PromotionRedemptionsColumns[1], PromotionRedemptionsColumns[2]},
+			},
+			{
+				Name:    "promotionredemption_tenant_id_promotion_id_customer_key",
+				Unique:  false,
+				Columns: []*schema.Column{PromotionRedemptionsColumns[1], PromotionRedemptionsColumns[2], PromotionRedemptionsColumns[3]},
+			},
+			{
+				Name:    "promotionredemption_idempotency",
+				Unique:  true,
+				Columns: []*schema.Column{PromotionRedemptionsColumns[1], PromotionRedemptionsColumns[2], PromotionRedemptionsColumns[4], PromotionRedemptionsColumns[5]},
+			},
+		},
 	}
 	// PromotionRulesColumns holds the columns for the "promotion_rules" table.
 	PromotionRulesColumns = []*schema.Column{
@@ -4038,6 +4074,7 @@ var (
 		PrintJobsTable,
 		PromotionsTable,
 		PromotionApplicationsTable,
+		PromotionRedemptionsTable,
 		PromotionRulesTable,
 		RateLimitConfigsTable,
 		ReferralsTable,

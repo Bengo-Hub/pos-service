@@ -319,6 +319,8 @@ func New(ctx context.Context) (*App, error) {
 	orderHandler.SetPaymentService(paymentSvc)
 	// All-Sales list routed to a read replica when configured — see readEntClient above.
 	orderHandler.SetReadClient(readEntClient)
+	// Enforces Promotion.usage_limit/max_units_per_customer when an order carries a promotion_id.
+	orderHandler.SetPromotionsService(promoSvc)
 	catalogHandler := handlers.NewCatalogHandler(log, entClient)
 	catalogHandler.SetRedisClient(redisClient)
 	tableHandler := handlers.NewTableHandler(log, entClient)

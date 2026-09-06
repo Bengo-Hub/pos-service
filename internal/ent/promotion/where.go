@@ -110,6 +110,16 @@ func EndAt(v time.Time) predicate.Promotion {
 	return predicate.Promotion(sql.FieldEQ(FieldEndAt, v))
 }
 
+// UsageLimit applies equality check predicate on the "usage_limit" field. It's identical to UsageLimitEQ.
+func UsageLimit(v int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldEQ(FieldUsageLimit, v))
+}
+
+// MaxUnitsPerCustomer applies equality check predicate on the "max_units_per_customer" field. It's identical to MaxUnitsPerCustomerEQ.
+func MaxUnitsPerCustomer(v int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldEQ(FieldMaxUnitsPerCustomer, v))
+}
+
 // TenantIDEQ applies the EQ predicate on the "tenant_id" field.
 func TenantIDEQ(v uuid.UUID) predicate.Promotion {
 	return predicate.Promotion(sql.FieldEQ(FieldTenantID, v))
@@ -758,6 +768,106 @@ func EndAtIsNil() predicate.Promotion {
 // EndAtNotNil applies the NotNil predicate on the "end_at" field.
 func EndAtNotNil() predicate.Promotion {
 	return predicate.Promotion(sql.FieldNotNull(FieldEndAt))
+}
+
+// UsageLimitEQ applies the EQ predicate on the "usage_limit" field.
+func UsageLimitEQ(v int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldEQ(FieldUsageLimit, v))
+}
+
+// UsageLimitNEQ applies the NEQ predicate on the "usage_limit" field.
+func UsageLimitNEQ(v int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldNEQ(FieldUsageLimit, v))
+}
+
+// UsageLimitIn applies the In predicate on the "usage_limit" field.
+func UsageLimitIn(vs ...int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldIn(FieldUsageLimit, vs...))
+}
+
+// UsageLimitNotIn applies the NotIn predicate on the "usage_limit" field.
+func UsageLimitNotIn(vs ...int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldNotIn(FieldUsageLimit, vs...))
+}
+
+// UsageLimitGT applies the GT predicate on the "usage_limit" field.
+func UsageLimitGT(v int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldGT(FieldUsageLimit, v))
+}
+
+// UsageLimitGTE applies the GTE predicate on the "usage_limit" field.
+func UsageLimitGTE(v int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldGTE(FieldUsageLimit, v))
+}
+
+// UsageLimitLT applies the LT predicate on the "usage_limit" field.
+func UsageLimitLT(v int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldLT(FieldUsageLimit, v))
+}
+
+// UsageLimitLTE applies the LTE predicate on the "usage_limit" field.
+func UsageLimitLTE(v int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldLTE(FieldUsageLimit, v))
+}
+
+// UsageLimitIsNil applies the IsNil predicate on the "usage_limit" field.
+func UsageLimitIsNil() predicate.Promotion {
+	return predicate.Promotion(sql.FieldIsNull(FieldUsageLimit))
+}
+
+// UsageLimitNotNil applies the NotNil predicate on the "usage_limit" field.
+func UsageLimitNotNil() predicate.Promotion {
+	return predicate.Promotion(sql.FieldNotNull(FieldUsageLimit))
+}
+
+// MaxUnitsPerCustomerEQ applies the EQ predicate on the "max_units_per_customer" field.
+func MaxUnitsPerCustomerEQ(v int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldEQ(FieldMaxUnitsPerCustomer, v))
+}
+
+// MaxUnitsPerCustomerNEQ applies the NEQ predicate on the "max_units_per_customer" field.
+func MaxUnitsPerCustomerNEQ(v int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldNEQ(FieldMaxUnitsPerCustomer, v))
+}
+
+// MaxUnitsPerCustomerIn applies the In predicate on the "max_units_per_customer" field.
+func MaxUnitsPerCustomerIn(vs ...int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldIn(FieldMaxUnitsPerCustomer, vs...))
+}
+
+// MaxUnitsPerCustomerNotIn applies the NotIn predicate on the "max_units_per_customer" field.
+func MaxUnitsPerCustomerNotIn(vs ...int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldNotIn(FieldMaxUnitsPerCustomer, vs...))
+}
+
+// MaxUnitsPerCustomerGT applies the GT predicate on the "max_units_per_customer" field.
+func MaxUnitsPerCustomerGT(v int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldGT(FieldMaxUnitsPerCustomer, v))
+}
+
+// MaxUnitsPerCustomerGTE applies the GTE predicate on the "max_units_per_customer" field.
+func MaxUnitsPerCustomerGTE(v int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldGTE(FieldMaxUnitsPerCustomer, v))
+}
+
+// MaxUnitsPerCustomerLT applies the LT predicate on the "max_units_per_customer" field.
+func MaxUnitsPerCustomerLT(v int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldLT(FieldMaxUnitsPerCustomer, v))
+}
+
+// MaxUnitsPerCustomerLTE applies the LTE predicate on the "max_units_per_customer" field.
+func MaxUnitsPerCustomerLTE(v int) predicate.Promotion {
+	return predicate.Promotion(sql.FieldLTE(FieldMaxUnitsPerCustomer, v))
+}
+
+// MaxUnitsPerCustomerIsNil applies the IsNil predicate on the "max_units_per_customer" field.
+func MaxUnitsPerCustomerIsNil() predicate.Promotion {
+	return predicate.Promotion(sql.FieldIsNull(FieldMaxUnitsPerCustomer))
+}
+
+// MaxUnitsPerCustomerNotNil applies the NotNil predicate on the "max_units_per_customer" field.
+func MaxUnitsPerCustomerNotNil() predicate.Promotion {
+	return predicate.Promotion(sql.FieldNotNull(FieldMaxUnitsPerCustomer))
 }
 
 // And groups predicates with the AND operator between them.

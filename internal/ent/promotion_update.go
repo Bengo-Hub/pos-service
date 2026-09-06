@@ -258,6 +258,60 @@ func (_u *PromotionUpdate) SetMetadata(v map[string]interface{}) *PromotionUpdat
 	return _u
 }
 
+// SetUsageLimit sets the "usage_limit" field.
+func (_u *PromotionUpdate) SetUsageLimit(v int) *PromotionUpdate {
+	_u.mutation.ResetUsageLimit()
+	_u.mutation.SetUsageLimit(v)
+	return _u
+}
+
+// SetNillableUsageLimit sets the "usage_limit" field if the given value is not nil.
+func (_u *PromotionUpdate) SetNillableUsageLimit(v *int) *PromotionUpdate {
+	if v != nil {
+		_u.SetUsageLimit(*v)
+	}
+	return _u
+}
+
+// AddUsageLimit adds value to the "usage_limit" field.
+func (_u *PromotionUpdate) AddUsageLimit(v int) *PromotionUpdate {
+	_u.mutation.AddUsageLimit(v)
+	return _u
+}
+
+// ClearUsageLimit clears the value of the "usage_limit" field.
+func (_u *PromotionUpdate) ClearUsageLimit() *PromotionUpdate {
+	_u.mutation.ClearUsageLimit()
+	return _u
+}
+
+// SetMaxUnitsPerCustomer sets the "max_units_per_customer" field.
+func (_u *PromotionUpdate) SetMaxUnitsPerCustomer(v int) *PromotionUpdate {
+	_u.mutation.ResetMaxUnitsPerCustomer()
+	_u.mutation.SetMaxUnitsPerCustomer(v)
+	return _u
+}
+
+// SetNillableMaxUnitsPerCustomer sets the "max_units_per_customer" field if the given value is not nil.
+func (_u *PromotionUpdate) SetNillableMaxUnitsPerCustomer(v *int) *PromotionUpdate {
+	if v != nil {
+		_u.SetMaxUnitsPerCustomer(*v)
+	}
+	return _u
+}
+
+// AddMaxUnitsPerCustomer adds value to the "max_units_per_customer" field.
+func (_u *PromotionUpdate) AddMaxUnitsPerCustomer(v int) *PromotionUpdate {
+	_u.mutation.AddMaxUnitsPerCustomer(v)
+	return _u
+}
+
+// ClearMaxUnitsPerCustomer clears the value of the "max_units_per_customer" field.
+func (_u *PromotionUpdate) ClearMaxUnitsPerCustomer() *PromotionUpdate {
+	_u.mutation.ClearMaxUnitsPerCustomer()
+	return _u
+}
+
 // Mutation returns the PromotionMutation object of the builder.
 func (_u *PromotionUpdate) Mutation() *PromotionMutation {
 	return _u.mutation
@@ -384,6 +438,24 @@ func (_u *PromotionUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(promotion.FieldMetadata, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.UsageLimit(); ok {
+		_spec.SetField(promotion.FieldUsageLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedUsageLimit(); ok {
+		_spec.AddField(promotion.FieldUsageLimit, field.TypeInt, value)
+	}
+	if _u.mutation.UsageLimitCleared() {
+		_spec.ClearField(promotion.FieldUsageLimit, field.TypeInt)
+	}
+	if value, ok := _u.mutation.MaxUnitsPerCustomer(); ok {
+		_spec.SetField(promotion.FieldMaxUnitsPerCustomer, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedMaxUnitsPerCustomer(); ok {
+		_spec.AddField(promotion.FieldMaxUnitsPerCustomer, field.TypeInt, value)
+	}
+	if _u.mutation.MaxUnitsPerCustomerCleared() {
+		_spec.ClearField(promotion.FieldMaxUnitsPerCustomer, field.TypeInt)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -633,6 +705,60 @@ func (_u *PromotionUpdateOne) SetMetadata(v map[string]interface{}) *PromotionUp
 	return _u
 }
 
+// SetUsageLimit sets the "usage_limit" field.
+func (_u *PromotionUpdateOne) SetUsageLimit(v int) *PromotionUpdateOne {
+	_u.mutation.ResetUsageLimit()
+	_u.mutation.SetUsageLimit(v)
+	return _u
+}
+
+// SetNillableUsageLimit sets the "usage_limit" field if the given value is not nil.
+func (_u *PromotionUpdateOne) SetNillableUsageLimit(v *int) *PromotionUpdateOne {
+	if v != nil {
+		_u.SetUsageLimit(*v)
+	}
+	return _u
+}
+
+// AddUsageLimit adds value to the "usage_limit" field.
+func (_u *PromotionUpdateOne) AddUsageLimit(v int) *PromotionUpdateOne {
+	_u.mutation.AddUsageLimit(v)
+	return _u
+}
+
+// ClearUsageLimit clears the value of the "usage_limit" field.
+func (_u *PromotionUpdateOne) ClearUsageLimit() *PromotionUpdateOne {
+	_u.mutation.ClearUsageLimit()
+	return _u
+}
+
+// SetMaxUnitsPerCustomer sets the "max_units_per_customer" field.
+func (_u *PromotionUpdateOne) SetMaxUnitsPerCustomer(v int) *PromotionUpdateOne {
+	_u.mutation.ResetMaxUnitsPerCustomer()
+	_u.mutation.SetMaxUnitsPerCustomer(v)
+	return _u
+}
+
+// SetNillableMaxUnitsPerCustomer sets the "max_units_per_customer" field if the given value is not nil.
+func (_u *PromotionUpdateOne) SetNillableMaxUnitsPerCustomer(v *int) *PromotionUpdateOne {
+	if v != nil {
+		_u.SetMaxUnitsPerCustomer(*v)
+	}
+	return _u
+}
+
+// AddMaxUnitsPerCustomer adds value to the "max_units_per_customer" field.
+func (_u *PromotionUpdateOne) AddMaxUnitsPerCustomer(v int) *PromotionUpdateOne {
+	_u.mutation.AddMaxUnitsPerCustomer(v)
+	return _u
+}
+
+// ClearMaxUnitsPerCustomer clears the value of the "max_units_per_customer" field.
+func (_u *PromotionUpdateOne) ClearMaxUnitsPerCustomer() *PromotionUpdateOne {
+	_u.mutation.ClearMaxUnitsPerCustomer()
+	return _u
+}
+
 // Mutation returns the PromotionMutation object of the builder.
 func (_u *PromotionUpdateOne) Mutation() *PromotionMutation {
 	return _u.mutation
@@ -789,6 +915,24 @@ func (_u *PromotionUpdateOne) sqlSave(ctx context.Context) (_node *Promotion, er
 	}
 	if value, ok := _u.mutation.Metadata(); ok {
 		_spec.SetField(promotion.FieldMetadata, field.TypeJSON, value)
+	}
+	if value, ok := _u.mutation.UsageLimit(); ok {
+		_spec.SetField(promotion.FieldUsageLimit, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedUsageLimit(); ok {
+		_spec.AddField(promotion.FieldUsageLimit, field.TypeInt, value)
+	}
+	if _u.mutation.UsageLimitCleared() {
+		_spec.ClearField(promotion.FieldUsageLimit, field.TypeInt)
+	}
+	if value, ok := _u.mutation.MaxUnitsPerCustomer(); ok {
+		_spec.SetField(promotion.FieldMaxUnitsPerCustomer, field.TypeInt, value)
+	}
+	if value, ok := _u.mutation.AddedMaxUnitsPerCustomer(); ok {
+		_spec.AddField(promotion.FieldMaxUnitsPerCustomer, field.TypeInt, value)
+	}
+	if _u.mutation.MaxUnitsPerCustomerCleared() {
+		_spec.ClearField(promotion.FieldMaxUnitsPerCustomer, field.TypeInt)
 	}
 	_node = &Promotion{config: _u.config}
 	_spec.Assign = _node.assignValues

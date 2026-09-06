@@ -24,11 +24,13 @@ import (
 	"github.com/bengobox/pos-service/internal/ent/posorderline"
 	"github.com/bengobox/pos-service/internal/ent/posreturn"
 	"github.com/bengobox/pos-service/internal/ent/predicate"
+	"github.com/bengobox/pos-service/internal/ent/promotionredemption"
 	"github.com/bengobox/pos-service/internal/ent/tender"
 	outletmw "github.com/bengobox/pos-service/internal/http/middleware"
 	"github.com/bengobox/pos-service/internal/modules/inventory"
 	"github.com/bengobox/pos-service/internal/modules/orders"
 	"github.com/bengobox/pos-service/internal/modules/payments"
+	"github.com/bengobox/pos-service/internal/modules/promotions"
 	"github.com/bengobox/pos-service/internal/modules/treasury"
 	"github.com/bengobox/pos-service/internal/platform/subscriptions"
 )
@@ -53,6 +55,10 @@ type POSOrderHandler struct {
 	// into thinking they were being monitored. Optional — nil means the message never
 	// mentions eTIMS (safer default than a false claim).
 	treasuryClient *treasury.Client
+	// promoSvc enforces Promotion.usage_limit/max_units_per_customer at order-creation time when
+	// the order carries a PromotionID (see reserveOrderPromotion). Optional — nil skips the
+	// check entirely (no caps enforced), same as before this existed.
+	promoSvc *promotions.Service
 	// paymentSvc lets a total-reducing line edit re-evaluate payment completion (see
 	// recheckCompletionAfterTotalsChange): voiding/reducing a line on a still-open order
 	// after a partial payment was already taken can drop the new total to at-or-below what's
@@ -117,6 +123,9 @@ func (h *POSOrderHandler) recheckCompletionAfterTotalsChange(ctx context.Context
 // SetTreasuryClient wires the treasury S2S client used only to confirm fiscal status before a
 // void-refusal message mentions KRA eTIMS (see isFiscalized).
 func (h *POSOrderHandler) SetTreasuryClient(c *treasury.Client) { h.treasuryClient = c }
+
+// SetPromotionsService wires the redemption-cap enforcement used by reserveOrderPromotion.
+func (h *POSOrderHandler) SetPromotionsService(p *promotions.Service) { h.promoSvc = p }
 
 // isFiscalized reports whether this order has a KRA eTIMS-signed treasury invoice — the same
 // criterion saledelete.Service.isFiscalized uses. Best-effort: nil client or a lookup error
@@ -243,6 +252,14 @@ type createOrderInput struct {
 	ServedByUserID string             `json:"served_by_user_id,omitempty"`
 	DiscountAmount float64            `json:"discount_amount,omitempty"`  // order-level discount (e.g. loyalty redemption)
 	DiscountReason string             `json:"discount_reason,omitempty"`  // free-text reason for a manual discount
+	// PromotionID identifies which Promotion produced DiscountAmount, when it came from a real
+	// promo code / auto-applied deal (as opposed to a discretionary manager override, which has
+	// no promotion behind it) — set by pos-ui whenever it applied a discount via
+	// /pos/promotions/apply or an auto-matched deal. When present, order creation enforces the
+	// promotion's usage_limit/max_units_per_customer caps (see reserveOrderPromotion) before the
+	// order is created; omitted or invalid, this check is skipped entirely (unchanged behavior
+	// for every order that isn't tied to a capped promotion).
+	PromotionID    string             `json:"promotion_id,omitempty"`
 	OrderTaxAmount float64            `json:"order_tax_amount,omitempty"` // manager quick-edit: order-level tax added on top of per-line tax
 	Charges        map[string]float64 `json:"charges,omitempty"`          // manager quick-edit: additional costs (packaging/service/shipping)
 	ApprovalToken  string             `json:"approval_token,omitempty"`   // manager step-up token for an over-limit discount / order adjustment
@@ -252,6 +269,43 @@ type createOrderInput struct {
 	// pos.orders.manage — CreateOrder rejects the whole request (403) if a caller without that
 	// permission supplies a non-empty value, rather than silently dropping their explicit input.
 	BusinessDate string `json:"business_date,omitempty"`
+}
+
+// reserveOrderPromotion checks and reserves promoID's usage_limit/max_units_per_customer caps
+// for this order (see promotions.Service.ReserveRedemption's doc comment for the idempotency
+// contract). Returns a non-empty, customer-facing rejection message when the cap has been hit;
+// empty means reserved (or the promotion has no caps configured at all — the common case).
+//
+// Reservation quantity is the order's TOTAL line quantity, not just the lines the promotion
+// actually discounted — pos-api's order payload carries only a flat DiscountAmount with no
+// per-line promotion attribution (a pre-existing, separate gap; see the flash-sale plan doc),
+// so attaching a capped promotion to a bill is treated as redeeming it against everything on
+// that bill. This errs conservative (the cap triggers sooner, never later), which is the safe
+// direction for a "prevent overselling the deal" cap.
+func (h *POSOrderHandler) reserveOrderPromotion(ctx context.Context, tid, promoID uuid.UUID, input createOrderInput, lines []orders.OrderLineInput) string {
+	idempotencyKey := input.ClientReference
+	if idempotencyKey == "" {
+		idempotencyKey = input.OrderNumber
+	}
+	if idempotencyKey == "" {
+		idempotencyKey = uuid.NewString()
+	}
+	quantity := 0.0
+	for _, l := range lines {
+		quantity += l.Quantity
+	}
+	res, err := h.promoSvc.ReserveRedemption(ctx, tid, promoID, input.CustomerPhone, promotionredemption.ChannelPos, idempotencyKey, quantity)
+	if err != nil {
+		h.log.Error("reserve order promotion failed", zap.Error(err))
+		return "" // best-effort: a reservation-check failure never blocks an otherwise-valid sale
+	}
+	if res.Reserved {
+		return ""
+	}
+	if res.Reason == "customer_limit_reached" {
+		return "this discount has already been used the maximum number of times for this customer"
+	}
+	return "this discount has reached its usage limit"
 }
 
 // updateStatusInput is the body for PATCH /pos/orders/{id}/status.
@@ -1264,6 +1318,15 @@ func (h *POSOrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	servedByUserID, _ := uuid.Parse(input.ServedByUserID) // zero value on blank/invalid = fall back to userID
+
+	if promoID, perr := uuid.Parse(input.PromotionID); perr == nil && h.promoSvc != nil {
+		if rejectReason := h.reserveOrderPromotion(r.Context(), tid, promoID, input, lines); rejectReason != "" {
+			respondJSON(w, http.StatusUnprocessableEntity, map[string]any{
+				"error": rejectReason, "code": "promotion_limit_reached",
+			})
+			return
+		}
+	}
 
 	order, err := h.orderSvc.CreateOrder(r.Context(), orders.CreateOrderRequest{
 		TenantID:         tid,

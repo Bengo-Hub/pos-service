@@ -188,6 +188,34 @@ func (_c *PromotionCreate) SetMetadata(v map[string]interface{}) *PromotionCreat
 	return _c
 }
 
+// SetUsageLimit sets the "usage_limit" field.
+func (_c *PromotionCreate) SetUsageLimit(v int) *PromotionCreate {
+	_c.mutation.SetUsageLimit(v)
+	return _c
+}
+
+// SetNillableUsageLimit sets the "usage_limit" field if the given value is not nil.
+func (_c *PromotionCreate) SetNillableUsageLimit(v *int) *PromotionCreate {
+	if v != nil {
+		_c.SetUsageLimit(*v)
+	}
+	return _c
+}
+
+// SetMaxUnitsPerCustomer sets the "max_units_per_customer" field.
+func (_c *PromotionCreate) SetMaxUnitsPerCustomer(v int) *PromotionCreate {
+	_c.mutation.SetMaxUnitsPerCustomer(v)
+	return _c
+}
+
+// SetNillableMaxUnitsPerCustomer sets the "max_units_per_customer" field if the given value is not nil.
+func (_c *PromotionCreate) SetNillableMaxUnitsPerCustomer(v *int) *PromotionCreate {
+	if v != nil {
+		_c.SetMaxUnitsPerCustomer(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *PromotionCreate) SetID(v uuid.UUID) *PromotionCreate {
 	_c.mutation.SetID(v)
@@ -387,6 +415,14 @@ func (_c *PromotionCreate) createSpec() (*Promotion, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.Metadata(); ok {
 		_spec.SetField(promotion.FieldMetadata, field.TypeJSON, value)
 		_node.Metadata = value
+	}
+	if value, ok := _c.mutation.UsageLimit(); ok {
+		_spec.SetField(promotion.FieldUsageLimit, field.TypeInt, value)
+		_node.UsageLimit = &value
+	}
+	if value, ok := _c.mutation.MaxUnitsPerCustomer(); ok {
+		_spec.SetField(promotion.FieldMaxUnitsPerCustomer, field.TypeInt, value)
+		_node.MaxUnitsPerCustomer = &value
 	}
 	return _node, _spec
 }
@@ -647,6 +683,54 @@ func (u *PromotionUpsert) SetMetadata(v map[string]interface{}) *PromotionUpsert
 // UpdateMetadata sets the "metadata" field to the value that was provided on create.
 func (u *PromotionUpsert) UpdateMetadata() *PromotionUpsert {
 	u.SetExcluded(promotion.FieldMetadata)
+	return u
+}
+
+// SetUsageLimit sets the "usage_limit" field.
+func (u *PromotionUpsert) SetUsageLimit(v int) *PromotionUpsert {
+	u.Set(promotion.FieldUsageLimit, v)
+	return u
+}
+
+// UpdateUsageLimit sets the "usage_limit" field to the value that was provided on create.
+func (u *PromotionUpsert) UpdateUsageLimit() *PromotionUpsert {
+	u.SetExcluded(promotion.FieldUsageLimit)
+	return u
+}
+
+// AddUsageLimit adds v to the "usage_limit" field.
+func (u *PromotionUpsert) AddUsageLimit(v int) *PromotionUpsert {
+	u.Add(promotion.FieldUsageLimit, v)
+	return u
+}
+
+// ClearUsageLimit clears the value of the "usage_limit" field.
+func (u *PromotionUpsert) ClearUsageLimit() *PromotionUpsert {
+	u.SetNull(promotion.FieldUsageLimit)
+	return u
+}
+
+// SetMaxUnitsPerCustomer sets the "max_units_per_customer" field.
+func (u *PromotionUpsert) SetMaxUnitsPerCustomer(v int) *PromotionUpsert {
+	u.Set(promotion.FieldMaxUnitsPerCustomer, v)
+	return u
+}
+
+// UpdateMaxUnitsPerCustomer sets the "max_units_per_customer" field to the value that was provided on create.
+func (u *PromotionUpsert) UpdateMaxUnitsPerCustomer() *PromotionUpsert {
+	u.SetExcluded(promotion.FieldMaxUnitsPerCustomer)
+	return u
+}
+
+// AddMaxUnitsPerCustomer adds v to the "max_units_per_customer" field.
+func (u *PromotionUpsert) AddMaxUnitsPerCustomer(v int) *PromotionUpsert {
+	u.Add(promotion.FieldMaxUnitsPerCustomer, v)
+	return u
+}
+
+// ClearMaxUnitsPerCustomer clears the value of the "max_units_per_customer" field.
+func (u *PromotionUpsert) ClearMaxUnitsPerCustomer() *PromotionUpsert {
+	u.SetNull(promotion.FieldMaxUnitsPerCustomer)
 	return u
 }
 
@@ -940,6 +1024,62 @@ func (u *PromotionUpsertOne) SetMetadata(v map[string]interface{}) *PromotionUps
 func (u *PromotionUpsertOne) UpdateMetadata() *PromotionUpsertOne {
 	return u.Update(func(s *PromotionUpsert) {
 		s.UpdateMetadata()
+	})
+}
+
+// SetUsageLimit sets the "usage_limit" field.
+func (u *PromotionUpsertOne) SetUsageLimit(v int) *PromotionUpsertOne {
+	return u.Update(func(s *PromotionUpsert) {
+		s.SetUsageLimit(v)
+	})
+}
+
+// AddUsageLimit adds v to the "usage_limit" field.
+func (u *PromotionUpsertOne) AddUsageLimit(v int) *PromotionUpsertOne {
+	return u.Update(func(s *PromotionUpsert) {
+		s.AddUsageLimit(v)
+	})
+}
+
+// UpdateUsageLimit sets the "usage_limit" field to the value that was provided on create.
+func (u *PromotionUpsertOne) UpdateUsageLimit() *PromotionUpsertOne {
+	return u.Update(func(s *PromotionUpsert) {
+		s.UpdateUsageLimit()
+	})
+}
+
+// ClearUsageLimit clears the value of the "usage_limit" field.
+func (u *PromotionUpsertOne) ClearUsageLimit() *PromotionUpsertOne {
+	return u.Update(func(s *PromotionUpsert) {
+		s.ClearUsageLimit()
+	})
+}
+
+// SetMaxUnitsPerCustomer sets the "max_units_per_customer" field.
+func (u *PromotionUpsertOne) SetMaxUnitsPerCustomer(v int) *PromotionUpsertOne {
+	return u.Update(func(s *PromotionUpsert) {
+		s.SetMaxUnitsPerCustomer(v)
+	})
+}
+
+// AddMaxUnitsPerCustomer adds v to the "max_units_per_customer" field.
+func (u *PromotionUpsertOne) AddMaxUnitsPerCustomer(v int) *PromotionUpsertOne {
+	return u.Update(func(s *PromotionUpsert) {
+		s.AddMaxUnitsPerCustomer(v)
+	})
+}
+
+// UpdateMaxUnitsPerCustomer sets the "max_units_per_customer" field to the value that was provided on create.
+func (u *PromotionUpsertOne) UpdateMaxUnitsPerCustomer() *PromotionUpsertOne {
+	return u.Update(func(s *PromotionUpsert) {
+		s.UpdateMaxUnitsPerCustomer()
+	})
+}
+
+// ClearMaxUnitsPerCustomer clears the value of the "max_units_per_customer" field.
+func (u *PromotionUpsertOne) ClearMaxUnitsPerCustomer() *PromotionUpsertOne {
+	return u.Update(func(s *PromotionUpsert) {
+		s.ClearMaxUnitsPerCustomer()
 	})
 }
 
@@ -1400,6 +1540,62 @@ func (u *PromotionUpsertBulk) SetMetadata(v map[string]interface{}) *PromotionUp
 func (u *PromotionUpsertBulk) UpdateMetadata() *PromotionUpsertBulk {
 	return u.Update(func(s *PromotionUpsert) {
 		s.UpdateMetadata()
+	})
+}
+
+// SetUsageLimit sets the "usage_limit" field.
+func (u *PromotionUpsertBulk) SetUsageLimit(v int) *PromotionUpsertBulk {
+	return u.Update(func(s *PromotionUpsert) {
+		s.SetUsageLimit(v)
+	})
+}
+
+// AddUsageLimit adds v to the "usage_limit" field.
+func (u *PromotionUpsertBulk) AddUsageLimit(v int) *PromotionUpsertBulk {
+	return u.Update(func(s *PromotionUpsert) {
+		s.AddUsageLimit(v)
+	})
+}
+
+// UpdateUsageLimit sets the "usage_limit" field to the value that was provided on create.
+func (u *PromotionUpsertBulk) UpdateUsageLimit() *PromotionUpsertBulk {
+	return u.Update(func(s *PromotionUpsert) {
+		s.UpdateUsageLimit()
+	})
+}
+
+// ClearUsageLimit clears the value of the "usage_limit" field.
+func (u *PromotionUpsertBulk) ClearUsageLimit() *PromotionUpsertBulk {
+	return u.Update(func(s *PromotionUpsert) {
+		s.ClearUsageLimit()
+	})
+}
+
+// SetMaxUnitsPerCustomer sets the "max_units_per_customer" field.
+func (u *PromotionUpsertBulk) SetMaxUnitsPerCustomer(v int) *PromotionUpsertBulk {
+	return u.Update(func(s *PromotionUpsert) {
+		s.SetMaxUnitsPerCustomer(v)
+	})
+}
+
+// AddMaxUnitsPerCustomer adds v to the "max_units_per_customer" field.
+func (u *PromotionUpsertBulk) AddMaxUnitsPerCustomer(v int) *PromotionUpsertBulk {
+	return u.Update(func(s *PromotionUpsert) {
+		s.AddMaxUnitsPerCustomer(v)
+	})
+}
+
+// UpdateMaxUnitsPerCustomer sets the "max_units_per_customer" field to the value that was provided on create.
+func (u *PromotionUpsertBulk) UpdateMaxUnitsPerCustomer() *PromotionUpsertBulk {
+	return u.Update(func(s *PromotionUpsert) {
+		s.UpdateMaxUnitsPerCustomer()
+	})
+}
+
+// ClearMaxUnitsPerCustomer clears the value of the "max_units_per_customer" field.
+func (u *PromotionUpsertBulk) ClearMaxUnitsPerCustomer() *PromotionUpsertBulk {
+	return u.Update(func(s *PromotionUpsert) {
+		s.ClearMaxUnitsPerCustomer()
 	})
 }
 

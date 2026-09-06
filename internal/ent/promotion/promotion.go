@@ -43,6 +43,10 @@ const (
 	FieldEndAt = "end_at"
 	// FieldMetadata holds the string denoting the metadata field in the database.
 	FieldMetadata = "metadata"
+	// FieldUsageLimit holds the string denoting the usage_limit field in the database.
+	FieldUsageLimit = "usage_limit"
+	// FieldMaxUnitsPerCustomer holds the string denoting the max_units_per_customer field in the database.
+	FieldMaxUnitsPerCustomer = "max_units_per_customer"
 	// Table holds the table name of the promotion in the database.
 	Table = "promotions"
 )
@@ -64,6 +68,8 @@ var Columns = []string{
 	FieldStartAt,
 	FieldEndAt,
 	FieldMetadata,
+	FieldUsageLimit,
+	FieldMaxUnitsPerCustomer,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -184,4 +190,14 @@ func ByStartAt(opts ...sql.OrderTermOption) OrderOption {
 // ByEndAt orders the results by the end_at field.
 func ByEndAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldEndAt, opts...).ToFunc()
+}
+
+// ByUsageLimit orders the results by the usage_limit field.
+func ByUsageLimit(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUsageLimit, opts...).ToFunc()
+}
+
+// ByMaxUnitsPerCustomer orders the results by the max_units_per_customer field.
+func ByMaxUnitsPerCustomer(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldMaxUnitsPerCustomer, opts...).ToFunc()
 }

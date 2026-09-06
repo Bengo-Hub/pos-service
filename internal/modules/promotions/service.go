@@ -60,7 +60,10 @@ func NewService(client *ent.Client, log *zap.Logger) *Service {
 // so a manually-entered code respects the exact same outlet/schedule/meal-period/item-or-category
 // scope and BOGO pairing that auto-apply discounts already enforce — a code discount is just a
 // PromotionRule the customer types in, not a different mechanism.
-func (s *Service) ApplyPromoCode(ctx context.Context, tenantID uuid.UUID, outletID *uuid.UUID, promoCode string, lines []TimedDiscountLine) (*ApplyResult, error) {
+// customerKey identifies who is applying the code (phone/customer-id/loyalty key), used only to
+// preview Promotion.max_units_per_customer — pass "" when unknown (e.g. an anonymous cart);
+// unknown customers are simply exempt from the per-customer cap, same as ReserveRedemption.
+func (s *Service) ApplyPromoCode(ctx context.Context, tenantID uuid.UUID, outletID *uuid.UUID, promoCode string, lines []TimedDiscountLine, customerKey string) (*ApplyResult, error) {
 	promo, err := s.client.Promotion.Query().
 		Where(
 			promotion.TenantID(tenantID),
@@ -112,6 +115,25 @@ func (s *Service) ApplyPromoCode(ctx context.Context, tenantID uuid.UUID, outlet
 	if len(eligible) == 0 {
 		return &ApplyResult{Valid: false, PromoCode: code, PromoID: promo.ID, Reason: "no eligible items in cart for this code"}, nil
 	}
+
+	// Cap preview (read-only): don't let a customer apply a code that's already sold out or
+	// that they've already maxed out, even though the actual reservation only happens once the
+	// order is finalized (ReserveRedemption) — this only ever REJECTS earlier than the final
+	// reservation would, never lets something through it wouldn't.
+	eligibleQty := 0.0
+	for _, l := range eligible {
+		eligibleQty += l.Quantity
+	}
+	if capRes, cErr := s.PreviewRedemption(ctx, tenantID, promo.ID, customerKey, eligibleQty); cErr != nil {
+		s.log.Warn("promo code cap preview failed", zap.Error(cErr))
+	} else if !capRes.Reserved {
+		reason := "this promo code has reached its usage limit"
+		if capRes.Reason == "customer_limit_reached" {
+			reason = "you've already used this promo code the maximum number of times"
+		}
+		return &ApplyResult{Valid: false, PromoCode: code, PromoID: promo.ID, Reason: reason}, nil
+	}
+
 	// free_delivery carries no monetary discount at all — its whole effect is on the caller's
 	// delivery fee (a concept pos-api itself has none of), so it skips evaluateRule/the
 	// zero-discount-means-ineligible check entirely; matching the schedule/meal-period/outlet

@@ -1,4 +1,4 @@
-h1:rnI516YJQpGTNs59SVpm+d5rlDCoFYrIRrZxfuLr8Ro=
+h1:gSbgFREkmDftIM15zkTGgljPziQxp6/lX+hFt2xcCFM=
 20260324210314_initial_schema.sql h1:L7ICP+7BHePtjHfQRRY9yP85A6Q9SyiYsqSvGK7paxA=
 20260403120000_fix_outbox_events_schema.sql h1:VNlTFTGCLBkz4+UvvvqZf5y5tyS0FfS1AXy770Ybc8o=
 20260507090905_hotel_module.sql h1:PGKqdzMQaeFLALmRXUmGsXjha3Rt42EldWJceFVNGDo=
@@ -101,3 +101,4 @@ h1:rnI516YJQpGTNs59SVpm+d5rlDCoFYrIRrZxfuLr8Ro=
 20260807164002_add_mtn_momo_number.sql h1:sKwNcyRE+uoYUg5ABi3OFLObGl6s0qazEmSC5ApnbEc=
 20260829174707_remove_pharmacy_clinical_module.sql h1:J0ZxI7cdU9VaRQbsOBrzrMrWg3cLJiIXneA73ys0j5M=
 20260830082435_outlet_settings_vat_default_off.sql h1:d6xWdWKWxCvBVJVTO6irlRT5/gZikhQOyLqGQvykJ8g=
+20260906190655_add_promotion_usage_caps.sql h1:weoCaMTVgtlCKwsWCLM1tv1Oo0dN7n4PXwdaD2DD+A8=

@@ -74,6 +74,7 @@ import (
 	"github.com/bengobox/pos-service/internal/ent/printjob"
 	"github.com/bengobox/pos-service/internal/ent/promotion"
 	"github.com/bengobox/pos-service/internal/ent/promotionapplication"
+	"github.com/bengobox/pos-service/internal/ent/promotionredemption"
 	"github.com/bengobox/pos-service/internal/ent/promotionrule"
 	"github.com/bengobox/pos-service/internal/ent/ratelimitconfig"
 	"github.com/bengobox/pos-service/internal/ent/referral"
@@ -2109,6 +2110,16 @@ func init() {
 	promotionapplicationDescID := promotionapplicationFields[0].Descriptor()
 	// promotionapplication.DefaultID holds the default value on creation for the id field.
 	promotionapplication.DefaultID = promotionapplicationDescID.Default.(func() uuid.UUID)
+	promotionredemptionFields := schema.PromotionRedemption{}.Fields()
+	_ = promotionredemptionFields
+	// promotionredemptionDescCreatedAt is the schema descriptor for created_at field.
+	promotionredemptionDescCreatedAt := promotionredemptionFields[7].Descriptor()
+	// promotionredemption.DefaultCreatedAt holds the default value on creation for the created_at field.
+	promotionredemption.DefaultCreatedAt = promotionredemptionDescCreatedAt.Default.(func() time.Time)
+	// promotionredemptionDescID is the schema descriptor for id field.
+	promotionredemptionDescID := promotionredemptionFields[0].Descriptor()
+	// promotionredemption.DefaultID holds the default value on creation for the id field.
+	promotionredemption.DefaultID = promotionredemptionDescID.Default.(func() uuid.UUID)
 	promotionruleFields := schema.PromotionRule{}.Fields()
 	_ = promotionruleFields
 	// promotionruleDescRuleType is the schema descriptor for rule_type field.

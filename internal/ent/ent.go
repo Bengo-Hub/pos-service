@@ -84,6 +84,7 @@ import (
 	"github.com/bengobox/pos-service/internal/ent/printjob"
 	"github.com/bengobox/pos-service/internal/ent/promotion"
 	"github.com/bengobox/pos-service/internal/ent/promotionapplication"
+	"github.com/bengobox/pos-service/internal/ent/promotionredemption"
 	"github.com/bengobox/pos-service/internal/ent/promotionrule"
 	"github.com/bengobox/pos-service/internal/ent/ratelimitconfig"
 	"github.com/bengobox/pos-service/internal/ent/referral"
@@ -261,6 +262,7 @@ func checkColumn(t, c string) error {
 			printjob.Table:                 printjob.ValidColumn,
 			promotion.Table:                promotion.ValidColumn,
 			promotionapplication.Table:     promotionapplication.ValidColumn,
+			promotionredemption.Table:      promotionredemption.ValidColumn,
 			promotionrule.Table:            promotionrule.ValidColumn,
 			ratelimitconfig.Table:          ratelimitconfig.ValidColumn,
 			referral.Table:                 referral.ValidColumn,

@@ -14,6 +14,7 @@ import (
 	authclient "github.com/Bengo-Hub/shared-auth-client"
 	"github.com/bengobox/pos-service/internal/ent"
 	"github.com/bengobox/pos-service/internal/ent/promotion"
+	"github.com/bengobox/pos-service/internal/ent/promotionredemption"
 	promotions "github.com/bengobox/pos-service/internal/modules/promotions"
 	"github.com/bengobox/pos-service/internal/platform/subscriptions"
 )
@@ -113,9 +114,10 @@ func (h *PromotionHandler) S2SApplyDiscount(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	var input struct {
-		PromoCode string                `json:"promoCode"`
-		OutletID  string                `json:"outlet_id"`
-		Lines     []applyPromoLineInput `json:"lines"`
+		PromoCode   string                `json:"promoCode"`
+		OutletID    string                `json:"outlet_id"`
+		Lines       []applyPromoLineInput `json:"lines"`
+		CustomerKey string                `json:"customer_key,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		jsonError(w, "invalid request body", http.StatusBadRequest)
@@ -125,7 +127,7 @@ func (h *PromotionHandler) S2SApplyDiscount(w http.ResponseWriter, r *http.Reque
 	if oid, perr := uuid.Parse(input.OutletID); perr == nil {
 		outletID = &oid
 	}
-	result, err := h.promoSvc.ApplyPromoCode(r.Context(), tid, outletID, input.PromoCode, toTimedDiscountLines(input.Lines))
+	result, err := h.promoSvc.ApplyPromoCode(r.Context(), tid, outletID, input.PromoCode, toTimedDiscountLines(input.Lines), input.CustomerKey)
 	if err != nil {
 		h.log.Error("s2s apply discount failed", zap.Error(err))
 		jsonError(w, "internal error", http.StatusInternalServerError)
@@ -143,6 +145,41 @@ func (h *PromotionHandler) S2SApplyDiscount(w http.ResponseWriter, r *http.Reque
 		"perSku":         result.PerSKU,
 		"discountType":   result.DiscountType,
 	})
+}
+
+// S2SReserveRedemption handles POST /api/v1/s2s/{tenant}/discounts/{promoId}/reserve — the real
+// usage-cap enforcement write path for ordering-backend's online checkout. Body:
+// {customer_key, order_id, quantity}. channel is always "ordering" here — pos-api's OWN order
+// creation calls promotions.Service.ReserveRedemption directly (same binary, channel "pos"),
+// this HTTP endpoint exists purely for the cross-service call. Idempotent on
+// (tenant, promotion, channel, order_id): safe to retry with the same order_id.
+func (h *PromotionHandler) S2SReserveRedemption(w http.ResponseWriter, r *http.Request) {
+	tid, err := uuid.Parse(chi.URLParam(r, "tenant"))
+	if err != nil {
+		jsonError(w, "invalid tenant", http.StatusBadRequest)
+		return
+	}
+	promoID, err := uuid.Parse(chi.URLParam(r, "promoId"))
+	if err != nil {
+		jsonError(w, "invalid promo_id", http.StatusBadRequest)
+		return
+	}
+	var input struct {
+		CustomerKey string  `json:"customer_key,omitempty"`
+		OrderID     string  `json:"order_id"`
+		Quantity    float64 `json:"quantity"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil || input.OrderID == "" || input.Quantity <= 0 {
+		jsonError(w, "order_id and a positive quantity are required", http.StatusBadRequest)
+		return
+	}
+	res, err := h.promoSvc.ReserveRedemption(r.Context(), tid, promoID, input.CustomerKey, promotionredemption.ChannelOrdering, input.OrderID, input.Quantity)
+	if err != nil {
+		h.log.Error("s2s reserve redemption failed", zap.Error(err))
+		jsonError(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+	jsonOK(w, res)
 }
 
 // s2sBanner is one active storefront-marketing-banner entry returned by S2SListBanners —

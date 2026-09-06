@@ -156,6 +156,8 @@ type Tx struct {
 	Promotion *PromotionClient
 	// PromotionApplication is the client for interacting with the PromotionApplication builders.
 	PromotionApplication *PromotionApplicationClient
+	// PromotionRedemption is the client for interacting with the PromotionRedemption builders.
+	PromotionRedemption *PromotionRedemptionClient
 	// PromotionRule is the client for interacting with the PromotionRule builders.
 	PromotionRule *PromotionRuleClient
 	// RateLimitConfig is the client for interacting with the RateLimitConfig builders.
@@ -449,6 +451,7 @@ func (tx *Tx) init() {
 	tx.PrintJob = NewPrintJobClient(tx.config)
 	tx.Promotion = NewPromotionClient(tx.config)
 	tx.PromotionApplication = NewPromotionApplicationClient(tx.config)
+	tx.PromotionRedemption = NewPromotionRedemptionClient(tx.config)
 	tx.PromotionRule = NewPromotionRuleClient(tx.config)
 	tx.RateLimitConfig = NewRateLimitConfigClient(tx.config)
 	tx.Referral = NewReferralClient(tx.config)

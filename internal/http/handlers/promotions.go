@@ -455,9 +455,10 @@ func (h *PromotionHandler) ApplyPromoCode(w http.ResponseWriter, r *http.Request
 	}
 
 	var input struct {
-		PromoCode string                `json:"promoCode"`
-		OutletID  string                `json:"outlet_id"`
-		Lines     []applyPromoLineInput `json:"lines"`
+		PromoCode   string                `json:"promoCode"`
+		OutletID    string                `json:"outlet_id"`
+		Lines       []applyPromoLineInput `json:"lines"`
+		CustomerKey string                `json:"customer_key,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		jsonError(w, "invalid request body", http.StatusBadRequest)
@@ -473,7 +474,7 @@ func (h *PromotionHandler) ApplyPromoCode(w http.ResponseWriter, r *http.Request
 		outletID = &oid
 	}
 
-	result, err := h.promoSvc.ApplyPromoCode(r.Context(), tid, outletID, input.PromoCode, toTimedDiscountLines(input.Lines))
+	result, err := h.promoSvc.ApplyPromoCode(r.Context(), tid, outletID, input.PromoCode, toTimedDiscountLines(input.Lines), input.CustomerKey)
 	if err != nil {
 		h.log.Error("apply promo code failed", zap.Error(err))
 		jsonError(w, "internal error", http.StatusInternalServerError)

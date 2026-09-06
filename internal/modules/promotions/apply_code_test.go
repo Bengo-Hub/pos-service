@@ -136,7 +136,7 @@ func codeLines() []TimedDiscountLine {
 
 func TestApplyPromoCode_NotFoundOrInactive(t *testing.T) {
 	svc, _ := newTestService(t)
-	res, err := svc.ApplyPromoCode(context.Background(), uuid.New(), nil, "NOPE", codeLines())
+	res, err := svc.ApplyPromoCode(context.Background(), uuid.New(), nil, "NOPE", codeLines(), "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -156,7 +156,7 @@ func TestApplyPromoCode_Expired(t *testing.T) {
 		code: "OLD10", startAt: time.Now().Add(-72 * time.Hour), endAt: &past,
 		scopeType: promotionrule.ScopeTypeAll, discType: promotionrule.DiscountTypePercentage, discValue: 10,
 	})
-	res, err := svc.ApplyPromoCode(context.Background(), tid, nil, "OLD10", codeLines())
+	res, err := svc.ApplyPromoCode(context.Background(), tid, nil, "OLD10", codeLines(), "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -172,7 +172,7 @@ func TestApplyPromoCode_NotStarted(t *testing.T) {
 		code: "FUTURE10", startAt: time.Now().Add(48 * time.Hour),
 		scopeType: promotionrule.ScopeTypeAll, discType: promotionrule.DiscountTypePercentage, discValue: 10,
 	})
-	res, err := svc.ApplyPromoCode(context.Background(), tid, nil, "FUTURE10", codeLines())
+	res, err := svc.ApplyPromoCode(context.Background(), tid, nil, "FUTURE10", codeLines(), "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -191,7 +191,7 @@ func TestApplyPromoCode_OutletMismatch(t *testing.T) {
 		code: "OUTLETA", outletID: &scopedOutlet.ID, startAt: time.Now().Add(-time.Hour),
 		scopeType: promotionrule.ScopeTypeAll, discType: promotionrule.DiscountTypePercentage, discValue: 10,
 	})
-	res, err := svc.ApplyPromoCode(context.Background(), tid, &otherOutlet.ID, "OUTLETA", codeLines())
+	res, err := svc.ApplyPromoCode(context.Background(), tid, &otherOutlet.ID, "OUTLETA", codeLines(), "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -204,7 +204,7 @@ func TestApplyPromoCode_NoRuleConfigured(t *testing.T) {
 	svc, client := newTestService(t)
 	tid := uuid.New()
 	seedPromo(t, client, tid, promoInput{code: "NORULE", startAt: time.Now().Add(-time.Hour), noRule: true})
-	res, err := svc.ApplyPromoCode(context.Background(), tid, nil, "NORULE", codeLines())
+	res, err := svc.ApplyPromoCode(context.Background(), tid, nil, "NORULE", codeLines(), "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -223,7 +223,7 @@ func TestApplyPromoCode_ValidItemScopedPercentage(t *testing.T) {
 		scopeType: promotionrule.ScopeTypeItem, scopeIDs: []string{"SKU1"},
 		discType: promotionrule.DiscountTypePercentage, discValue: 10,
 	})
-	res, err := svc.ApplyPromoCode(context.Background(), tid, nil, "SAVE10", codeLines())
+	res, err := svc.ApplyPromoCode(context.Background(), tid, nil, "SAVE10", codeLines(), "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -255,7 +255,7 @@ func TestApplyPromoCode_MealPeriodGate(t *testing.T) {
 		DiscountLine: DiscountLine{SKU: "SKU1", Quantity: 1, UnitPrice: unit, Total: unit},
 		AddedAt:      time.Date(2026, 1, 2, 20, 0, 0, 0, time.UTC), // 20:00 — dinner, not lunch
 	}
-	res, err := svc.ApplyPromoCode(context.Background(), tid, nil, "LUNCH10", []TimedDiscountLine{dinnerLine})
+	res, err := svc.ApplyPromoCode(context.Background(), tid, nil, "LUNCH10", []TimedDiscountLine{dinnerLine}, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

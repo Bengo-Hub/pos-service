@@ -57,5 +57,17 @@ func (Promotion) Fields() []ent.Field {
 			Nillable(),
 		field.JSON("metadata", map[string]any{}).
 			Default(map[string]any{}),
+		// Redemption caps (2026-09-06 flash-sale plan, real enforcement pass) — checked/tracked
+		// via PromotionRedemption + Service.ReserveRedemption, GLOBALLY across both channels
+		// (POS terminal + ordering-frontend), since this is the single discount source of truth.
+		// nil/0 = unlimited, matching every other optional-cap field in this codebase.
+		field.Int("usage_limit").
+			Optional().
+			Nillable().
+			Comment("Total redemption cap across all channels combined; nil/0 = unlimited"),
+		field.Int("max_units_per_customer").
+			Optional().
+			Nillable().
+			Comment("Per-customer redemption cap, matched by phone/customer key; nil/0 = unlimited"),
 	}
 }

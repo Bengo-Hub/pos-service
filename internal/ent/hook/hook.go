@@ -873,6 +873,18 @@ func (f PromotionApplicationFunc) Mutate(ctx context.Context, m ent.Mutation) (e
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PromotionApplicationMutation", m)
 }
 
+// The PromotionRedemptionFunc type is an adapter to allow the use of ordinary
+// function as PromotionRedemption mutator.
+type PromotionRedemptionFunc func(context.Context, *ent.PromotionRedemptionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f PromotionRedemptionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.PromotionRedemptionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.PromotionRedemptionMutation", m)
+}
+
 // The PromotionRuleFunc type is an adapter to allow the use of ordinary
 // function as PromotionRule mutator.
 type PromotionRuleFunc func(context.Context, *ent.PromotionRuleMutation) (ent.Value, error)

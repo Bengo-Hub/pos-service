@@ -88,6 +88,7 @@ import (
 	"github.com/bengobox/pos-service/internal/ent/printjob"
 	"github.com/bengobox/pos-service/internal/ent/promotion"
 	"github.com/bengobox/pos-service/internal/ent/promotionapplication"
+	"github.com/bengobox/pos-service/internal/ent/promotionredemption"
 	"github.com/bengobox/pos-service/internal/ent/promotionrule"
 	"github.com/bengobox/pos-service/internal/ent/ratelimitconfig"
 	"github.com/bengobox/pos-service/internal/ent/referral"
@@ -284,6 +285,8 @@ type Client struct {
 	Promotion *PromotionClient
 	// PromotionApplication is the client for interacting with the PromotionApplication builders.
 	PromotionApplication *PromotionApplicationClient
+	// PromotionRedemption is the client for interacting with the PromotionRedemption builders.
+	PromotionRedemption *PromotionRedemptionClient
 	// PromotionRule is the client for interacting with the PromotionRule builders.
 	PromotionRule *PromotionRuleClient
 	// RateLimitConfig is the client for interacting with the RateLimitConfig builders.
@@ -457,6 +460,7 @@ func (c *Client) init() {
 	c.PrintJob = NewPrintJobClient(c.config)
 	c.Promotion = NewPromotionClient(c.config)
 	c.PromotionApplication = NewPromotionApplicationClient(c.config)
+	c.PromotionRedemption = NewPromotionRedemptionClient(c.config)
 	c.PromotionRule = NewPromotionRuleClient(c.config)
 	c.RateLimitConfig = NewRateLimitConfigClient(c.config)
 	c.Referral = NewReferralClient(c.config)
@@ -666,6 +670,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		PrintJob:                 NewPrintJobClient(cfg),
 		Promotion:                NewPromotionClient(cfg),
 		PromotionApplication:     NewPromotionApplicationClient(cfg),
+		PromotionRedemption:      NewPromotionRedemptionClient(cfg),
 		PromotionRule:            NewPromotionRuleClient(cfg),
 		RateLimitConfig:          NewRateLimitConfigClient(cfg),
 		Referral:                 NewReferralClient(cfg),
@@ -802,6 +807,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		PrintJob:                 NewPrintJobClient(cfg),
 		Promotion:                NewPromotionClient(cfg),
 		PromotionApplication:     NewPromotionApplicationClient(cfg),
+		PromotionRedemption:      NewPromotionRedemptionClient(cfg),
 		PromotionRule:            NewPromotionRuleClient(cfg),
 		RateLimitConfig:          NewRateLimitConfigClient(cfg),
 		Referral:                 NewReferralClient(cfg),
@@ -892,18 +898,19 @@ func (c *Client) Use(hooks ...Hook) {
 		c.POSRefund, c.POSReturn, c.POSReturnLine, c.POSReversal, c.POSRole,
 		c.POSRolePermission, c.POSRoleV2, c.POSSaleEdit, c.POSSaleShred,
 		c.POSUserRoleAssignment, c.PosNotification, c.PriceBook, c.PriceBookItem,
-		c.PrintAgent, c.PrintJob, c.Promotion, c.PromotionApplication, c.PromotionRule,
-		c.RateLimitConfig, c.Referral, c.RepairJob, c.RepairJobEvent, c.RepairJobPart,
-		c.Resource, c.Room, c.RoomAmenity, c.RoomAmenityAssignment, c.RoomBooking,
-		c.RoomFolioItem, c.RoomFolioPayment, c.RoomGuest, c.Section, c.SerialNumberLog,
-		c.ServiceConfig, c.ServicePackage, c.ServicePackagePurchase,
-		c.ServicePackageRedemption, c.ServiceQueueEntry, c.ShiftRotation,
-		c.ShiftRotationSlot, c.StaffAdvance, c.StaffMember, c.StaffOutlet,
-		c.StaffPayroll, c.StaffPayrollLine, c.StaffPurchaseLink, c.StaffSchedule,
-		c.StaffShiftOverride, c.StockAlertSubscription, c.StockConsumptionEvent,
-		c.SyncFailure, c.Table, c.TableAssignment, c.TableReservation, c.Tenant,
-		c.TenantSyncEvent, c.Tender, c.User, c.UserPOSRole, c.WebhookDelivery,
-		c.WebhookSubscription, c.WeighingScaleReading,
+		c.PrintAgent, c.PrintJob, c.Promotion, c.PromotionApplication,
+		c.PromotionRedemption, c.PromotionRule, c.RateLimitConfig, c.Referral,
+		c.RepairJob, c.RepairJobEvent, c.RepairJobPart, c.Resource, c.Room,
+		c.RoomAmenity, c.RoomAmenityAssignment, c.RoomBooking, c.RoomFolioItem,
+		c.RoomFolioPayment, c.RoomGuest, c.Section, c.SerialNumberLog, c.ServiceConfig,
+		c.ServicePackage, c.ServicePackagePurchase, c.ServicePackageRedemption,
+		c.ServiceQueueEntry, c.ShiftRotation, c.ShiftRotationSlot, c.StaffAdvance,
+		c.StaffMember, c.StaffOutlet, c.StaffPayroll, c.StaffPayrollLine,
+		c.StaffPurchaseLink, c.StaffSchedule, c.StaffShiftOverride,
+		c.StockAlertSubscription, c.StockConsumptionEvent, c.SyncFailure, c.Table,
+		c.TableAssignment, c.TableReservation, c.Tenant, c.TenantSyncEvent, c.Tender,
+		c.User, c.UserPOSRole, c.WebhookDelivery, c.WebhookSubscription,
+		c.WeighingScaleReading,
 	} {
 		n.Use(hooks...)
 	}
@@ -929,18 +936,19 @@ func (c *Client) Intercept(interceptors ...Interceptor) {
 		c.POSRefund, c.POSReturn, c.POSReturnLine, c.POSReversal, c.POSRole,
 		c.POSRolePermission, c.POSRoleV2, c.POSSaleEdit, c.POSSaleShred,
 		c.POSUserRoleAssignment, c.PosNotification, c.PriceBook, c.PriceBookItem,
-		c.PrintAgent, c.PrintJob, c.Promotion, c.PromotionApplication, c.PromotionRule,
-		c.RateLimitConfig, c.Referral, c.RepairJob, c.RepairJobEvent, c.RepairJobPart,
-		c.Resource, c.Room, c.RoomAmenity, c.RoomAmenityAssignment, c.RoomBooking,
-		c.RoomFolioItem, c.RoomFolioPayment, c.RoomGuest, c.Section, c.SerialNumberLog,
-		c.ServiceConfig, c.ServicePackage, c.ServicePackagePurchase,
-		c.ServicePackageRedemption, c.ServiceQueueEntry, c.ShiftRotation,
-		c.ShiftRotationSlot, c.StaffAdvance, c.StaffMember, c.StaffOutlet,
-		c.StaffPayroll, c.StaffPayrollLine, c.StaffPurchaseLink, c.StaffSchedule,
-		c.StaffShiftOverride, c.StockAlertSubscription, c.StockConsumptionEvent,
-		c.SyncFailure, c.Table, c.TableAssignment, c.TableReservation, c.Tenant,
-		c.TenantSyncEvent, c.Tender, c.User, c.UserPOSRole, c.WebhookDelivery,
-		c.WebhookSubscription, c.WeighingScaleReading,
+		c.PrintAgent, c.PrintJob, c.Promotion, c.PromotionApplication,
+		c.PromotionRedemption, c.PromotionRule, c.RateLimitConfig, c.Referral,
+		c.RepairJob, c.RepairJobEvent, c.RepairJobPart, c.Resource, c.Room,
+		c.RoomAmenity, c.RoomAmenityAssignment, c.RoomBooking, c.RoomFolioItem,
+		c.RoomFolioPayment, c.RoomGuest, c.Section, c.SerialNumberLog, c.ServiceConfig,
+		c.ServicePackage, c.ServicePackagePurchase, c.ServicePackageRedemption,
+		c.ServiceQueueEntry, c.ShiftRotation, c.ShiftRotationSlot, c.StaffAdvance,
+		c.StaffMember, c.StaffOutlet, c.StaffPayroll, c.StaffPayrollLine,
+		c.StaffPurchaseLink, c.StaffSchedule, c.StaffShiftOverride,
+		c.StockAlertSubscription, c.StockConsumptionEvent, c.SyncFailure, c.Table,
+		c.TableAssignment, c.TableReservation, c.Tenant, c.TenantSyncEvent, c.Tender,
+		c.User, c.UserPOSRole, c.WebhookDelivery, c.WebhookSubscription,
+		c.WeighingScaleReading,
 	} {
 		n.Intercept(interceptors...)
 	}
@@ -1093,6 +1101,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Promotion.mutate(ctx, m)
 	case *PromotionApplicationMutation:
 		return c.PromotionApplication.mutate(ctx, m)
+	case *PromotionRedemptionMutation:
+		return c.PromotionRedemption.mutate(ctx, m)
 	case *PromotionRuleMutation:
 		return c.PromotionRule.mutate(ctx, m)
 	case *RateLimitConfigMutation:
@@ -11484,6 +11494,139 @@ func (c *PromotionApplicationClient) mutate(ctx context.Context, m *PromotionApp
 	}
 }
 
+// PromotionRedemptionClient is a client for the PromotionRedemption schema.
+type PromotionRedemptionClient struct {
+	config
+}
+
+// NewPromotionRedemptionClient returns a client for the PromotionRedemption from the given config.
+func NewPromotionRedemptionClient(c config) *PromotionRedemptionClient {
+	return &PromotionRedemptionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `promotionredemption.Hooks(f(g(h())))`.
+func (c *PromotionRedemptionClient) Use(hooks ...Hook) {
+	c.hooks.PromotionRedemption = append(c.hooks.PromotionRedemption, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `promotionredemption.Intercept(f(g(h())))`.
+func (c *PromotionRedemptionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.PromotionRedemption = append(c.inters.PromotionRedemption, interceptors...)
+}
+
+// Create returns a builder for creating a PromotionRedemption entity.
+func (c *PromotionRedemptionClient) Create() *PromotionRedemptionCreate {
+	mutation := newPromotionRedemptionMutation(c.config, OpCreate)
+	return &PromotionRedemptionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of PromotionRedemption entities.
+func (c *PromotionRedemptionClient) CreateBulk(builders ...*PromotionRedemptionCreate) *PromotionRedemptionCreateBulk {
+	return &PromotionRedemptionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *PromotionRedemptionClient) MapCreateBulk(slice any, setFunc func(*PromotionRedemptionCreate, int)) *PromotionRedemptionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &PromotionRedemptionCreateBulk{err: fmt.Errorf("calling to PromotionRedemptionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*PromotionRedemptionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &PromotionRedemptionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for PromotionRedemption.
+func (c *PromotionRedemptionClient) Update() *PromotionRedemptionUpdate {
+	mutation := newPromotionRedemptionMutation(c.config, OpUpdate)
+	return &PromotionRedemptionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *PromotionRedemptionClient) UpdateOne(_m *PromotionRedemption) *PromotionRedemptionUpdateOne {
+	mutation := newPromotionRedemptionMutation(c.config, OpUpdateOne, withPromotionRedemption(_m))
+	return &PromotionRedemptionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *PromotionRedemptionClient) UpdateOneID(id uuid.UUID) *PromotionRedemptionUpdateOne {
+	mutation := newPromotionRedemptionMutation(c.config, OpUpdateOne, withPromotionRedemptionID(id))
+	return &PromotionRedemptionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for PromotionRedemption.
+func (c *PromotionRedemptionClient) Delete() *PromotionRedemptionDelete {
+	mutation := newPromotionRedemptionMutation(c.config, OpDelete)
+	return &PromotionRedemptionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *PromotionRedemptionClient) DeleteOne(_m *PromotionRedemption) *PromotionRedemptionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *PromotionRedemptionClient) DeleteOneID(id uuid.UUID) *PromotionRedemptionDeleteOne {
+	builder := c.Delete().Where(promotionredemption.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &PromotionRedemptionDeleteOne{builder}
+}
+
+// Query returns a query builder for PromotionRedemption.
+func (c *PromotionRedemptionClient) Query() *PromotionRedemptionQuery {
+	return &PromotionRedemptionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypePromotionRedemption},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a PromotionRedemption entity by its id.
+func (c *PromotionRedemptionClient) Get(ctx context.Context, id uuid.UUID) (*PromotionRedemption, error) {
+	return c.Query().Where(promotionredemption.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *PromotionRedemptionClient) GetX(ctx context.Context, id uuid.UUID) *PromotionRedemption {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// Hooks returns the client hooks.
+func (c *PromotionRedemptionClient) Hooks() []Hook {
+	return c.hooks.PromotionRedemption
+}
+
+// Interceptors returns the client interceptors.
+func (c *PromotionRedemptionClient) Interceptors() []Interceptor {
+	return c.inters.PromotionRedemption
+}
+
+func (c *PromotionRedemptionClient) mutate(ctx context.Context, m *PromotionRedemptionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&PromotionRedemptionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&PromotionRedemptionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&PromotionRedemptionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&PromotionRedemptionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown PromotionRedemption mutation op: %q", m.Op())
+	}
+}
+
 // PromotionRuleClient is a client for the PromotionRule schema.
 type PromotionRuleClient struct {
 	config
@@ -17997,17 +18140,17 @@ type (
 		POSOrderEvent, POSOrderLine, POSPayment, POSPermission, POSRefund, POSReturn,
 		POSReturnLine, POSReversal, POSRole, POSRolePermission, POSRoleV2, POSSaleEdit,
 		POSSaleShred, POSUserRoleAssignment, PosNotification, PriceBook, PriceBookItem,
-		PrintAgent, PrintJob, Promotion, PromotionApplication, PromotionRule,
-		RateLimitConfig, Referral, RepairJob, RepairJobEvent, RepairJobPart, Resource,
-		Room, RoomAmenity, RoomAmenityAssignment, RoomBooking, RoomFolioItem,
-		RoomFolioPayment, RoomGuest, Section, SerialNumberLog, ServiceConfig,
-		ServicePackage, ServicePackagePurchase, ServicePackageRedemption,
-		ServiceQueueEntry, ShiftRotation, ShiftRotationSlot, StaffAdvance, StaffMember,
-		StaffOutlet, StaffPayroll, StaffPayrollLine, StaffPurchaseLink, StaffSchedule,
-		StaffShiftOverride, StockAlertSubscription, StockConsumptionEvent, SyncFailure,
-		Table, TableAssignment, TableReservation, Tenant, TenantSyncEvent, Tender,
-		User, UserPOSRole, WebhookDelivery, WebhookSubscription,
-		WeighingScaleReading []ent.Hook
+		PrintAgent, PrintJob, Promotion, PromotionApplication, PromotionRedemption,
+		PromotionRule, RateLimitConfig, Referral, RepairJob, RepairJobEvent,
+		RepairJobPart, Resource, Room, RoomAmenity, RoomAmenityAssignment, RoomBooking,
+		RoomFolioItem, RoomFolioPayment, RoomGuest, Section, SerialNumberLog,
+		ServiceConfig, ServicePackage, ServicePackagePurchase,
+		ServicePackageRedemption, ServiceQueueEntry, ShiftRotation, ShiftRotationSlot,
+		StaffAdvance, StaffMember, StaffOutlet, StaffPayroll, StaffPayrollLine,
+		StaffPurchaseLink, StaffSchedule, StaffShiftOverride, StockAlertSubscription,
+		StockConsumptionEvent, SyncFailure, Table, TableAssignment, TableReservation,
+		Tenant, TenantSyncEvent, Tender, User, UserPOSRole, WebhookDelivery,
+		WebhookSubscription, WeighingScaleReading []ent.Hook
 	}
 	inters struct {
 		Appointment, AuditLog, Backup, BackupSetting, BarTab, BarTabEvent, BillSplit,
@@ -18023,16 +18166,16 @@ type (
 		POSOrderEvent, POSOrderLine, POSPayment, POSPermission, POSRefund, POSReturn,
 		POSReturnLine, POSReversal, POSRole, POSRolePermission, POSRoleV2, POSSaleEdit,
 		POSSaleShred, POSUserRoleAssignment, PosNotification, PriceBook, PriceBookItem,
-		PrintAgent, PrintJob, Promotion, PromotionApplication, PromotionRule,
-		RateLimitConfig, Referral, RepairJob, RepairJobEvent, RepairJobPart, Resource,
-		Room, RoomAmenity, RoomAmenityAssignment, RoomBooking, RoomFolioItem,
-		RoomFolioPayment, RoomGuest, Section, SerialNumberLog, ServiceConfig,
-		ServicePackage, ServicePackagePurchase, ServicePackageRedemption,
-		ServiceQueueEntry, ShiftRotation, ShiftRotationSlot, StaffAdvance, StaffMember,
-		StaffOutlet, StaffPayroll, StaffPayrollLine, StaffPurchaseLink, StaffSchedule,
-		StaffShiftOverride, StockAlertSubscription, StockConsumptionEvent, SyncFailure,
-		Table, TableAssignment, TableReservation, Tenant, TenantSyncEvent, Tender,
-		User, UserPOSRole, WebhookDelivery, WebhookSubscription,
-		WeighingScaleReading []ent.Interceptor
+		PrintAgent, PrintJob, Promotion, PromotionApplication, PromotionRedemption,
+		PromotionRule, RateLimitConfig, Referral, RepairJob, RepairJobEvent,
+		RepairJobPart, Resource, Room, RoomAmenity, RoomAmenityAssignment, RoomBooking,
+		RoomFolioItem, RoomFolioPayment, RoomGuest, Section, SerialNumberLog,
+		ServiceConfig, ServicePackage, ServicePackagePurchase,
+		ServicePackageRedemption, ServiceQueueEntry, ShiftRotation, ShiftRotationSlot,
+		StaffAdvance, StaffMember, StaffOutlet, StaffPayroll, StaffPayrollLine,
+		StaffPurchaseLink, StaffSchedule, StaffShiftOverride, StockAlertSubscription,
+		StockConsumptionEvent, SyncFailure, Table, TableAssignment, TableReservation,
+		Tenant, TenantSyncEvent, Tender, User, UserPOSRole, WebhookDelivery,
+		WebhookSubscription, WeighingScaleReading []ent.Interceptor
 	}
 )

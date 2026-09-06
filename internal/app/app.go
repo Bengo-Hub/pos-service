@@ -627,6 +627,7 @@ func New(ctx context.Context) (*App, error) {
 	// is reflected in subsequent JWT-enriched responses without a restart.
 	if natsConn != nil {
 		subCacheSub := subscriptions.NewCacheSubscriber(redisClient, log)
+		subCacheSub.SetNotifHub(notifHub)
 		if err := subCacheSub.Start(natsConn); err != nil {
 			log.Warn("app: failed to start subscription cache subscriber", zap.Error(err))
 		}

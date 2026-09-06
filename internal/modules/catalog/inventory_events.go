@@ -150,6 +150,8 @@ func (h *InventoryEventHandler) SubscribeToInventoryEvents(nc *nats.Conn) error 
 			handleErr = h.syncItemCostChanged(context.Background(), evt)
 		case "item.pricing_updated":
 			handleErr = h.onItemPricingUpdated(context.Background(), evt)
+		case "item.outlet_pricing_removed":
+			handleErr = h.onOutletPricingRemoved(context.Background(), evt)
 		default:
 			handleErr = h.syncCatalogItem(context.Background(), evt)
 		}
@@ -184,6 +186,11 @@ func (h *InventoryEventHandler) SubscribeToInventoryEvents(nc *nats.Conn) error 
 		// decouple fixes — those two fixes were real and necessary but didn't cover this event type at
 		// all, which is why the symptom kept recurring even once both were live.
 		{"inventory.item.pricing_updated", "pos-inv-item-pricing-updated"},
+		// A tenant deleted an outlet-scoped inventory price (Catalog item detail page's per-outlet
+		// pricing "Delete" action) — cascade by clearing THIS outlet's own selling_price override
+		// too, so the branch actually reverts to charging the standard price rather than being
+		// silently shadowed by a now-stale pos-api-layer override. See onOutletPricingRemoved.
+		{"inventory.item.outlet_pricing_removed", "pos-inv-outlet-pricing-removed"},
 		{"inventory.bundle.created", "pos-inv-bundle-created"},
 		{"inventory.bundle.updated", "pos-inv-bundle-updated"},
 		// Stock-level changes (restock / adjustment / stock-take / sale deduction) bump the catalog
@@ -270,6 +277,49 @@ func (h *InventoryEventHandler) onItemPricingUpdated(ctx context.Context, evt *s
 	}
 	h.bustCatalogSourceCache(ctx, tenant)
 	h.broadcastCatalogChangedDebounced(ctx, tenant, evt.TenantID, "pos:catprice-lock:")
+	return nil
+}
+
+// onOutletPricingRemoved reacts to inventory.item.outlet_pricing_removed — published only when a
+// tenant deletes an outlet-scoped inventory price (never by a plain price edit, which stays
+// item.pricing_updated). Clears THIS OUTLET's own POSCatalogOverride.selling_price, if one is
+// set, so the branch actually reverts to the tenant-wide price the tenant expects, instead of
+// being silently shadowed by a pos-api-layer override nobody remembers is still there — the
+// whole reason a plain inventory-side delete needs to cascade at all: pos-api's own
+// selling_price is an INDEPENDENT override, not a cache of inventory's price (see
+// onItemPricingUpdated's doc comment), so deleting only the inventory row would otherwise leave
+// checkout charging whatever pos-api still has on file.
+func (h *InventoryEventHandler) onOutletPricingRemoved(ctx context.Context, evt *sharedevents.Event) error {
+	sku, _ := evt.Payload["sku"].(string)
+	outletID := uuidFromPayload(evt.Payload["outlet_id"])
+	if sku == "" || outletID == nil {
+		return nil
+	}
+	tenant := evt.TenantID.String()
+	if tenant == "" || tenant == "00000000-0000-0000-0000-000000000000" {
+		return nil
+	}
+
+	existing, err := h.client.POSCatalogOverride.Query().
+		Where(entoverride.TenantID(evt.TenantID), entoverride.InventorySku(sku), entoverride.OutletID(*outletID)).
+		Only(ctx)
+	if err != nil {
+		// No POS-layer override for this outlet — nothing to cascade, not an error.
+		return nil
+	}
+	if existing.SellingPrice == nil {
+		return nil
+	}
+	if _, err := existing.Update().ClearSellingPrice().Save(ctx); err != nil {
+		return fmt.Errorf("clear outlet selling_price override: %w", err)
+	}
+	h.logger.Info("POS catalog outlet selling_price override cleared (cascaded from inventory delete)",
+		zap.String("sku", sku), zap.String("outlet_id", outletID.String()))
+
+	if h.redis != nil {
+		h.bustCatalogSourceCache(ctx, tenant)
+		h.broadcastCatalogChangedDebounced(ctx, tenant, evt.TenantID, "pos:catprice-lock:")
+	}
 	return nil
 }
 

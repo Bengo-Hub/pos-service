@@ -216,6 +216,11 @@ type createPromoInput struct {
 	// cheapest get-scope item). ScopeIDs/GetScopeIDs are derived from its keys/values so the
 	// scope-based paths stay consistent.
 	GetPairMap map[string]string `json:"get_pair_map"`
+	// Redemption caps (nil = unlimited / leave unset on create, clear on update — same
+	// nil-means-unlimited convention as MaxDiscount). Enforced by promotions.Service.ReserveRedemption
+	// against the promotion_redemptions ledger, shared globally across POS + ordering-frontend.
+	UsageLimit          *int `json:"usage_limit"`
+	MaxUnitsPerCustomer *int `json:"max_units_per_customer"`
 	// Banner optionally flags this promotion to also appear as a marketing banner on the
 	// customer-facing ordering storefront. Nil = caller didn't touch banner config (leave
 	// whatever's already in metadata alone on update; create simply omits it). Stored via
@@ -326,6 +331,7 @@ func (h *PromotionHandler) createPromotionFromInput(ctx context.Context, tid uui
 	if input.Banner != nil {
 		builder = builder.SetMetadata(promotions.MergeBannerMetadata(nil, *input.Banner))
 	}
+	builder = builder.SetNillableUsageLimit(input.UsageLimit).SetNillableMaxUnitsPerCustomer(input.MaxUnitsPerCustomer)
 	promo, err := builder.Save(ctx)
 	if err != nil {
 		return nil, err
@@ -556,6 +562,16 @@ func (h *PromotionHandler) UpdatePromotion(w http.ResponseWriter, r *http.Reques
 	}
 	if input.Banner != nil {
 		upd = upd.SetMetadata(promotions.MergeBannerMetadata(existing.Metadata, *input.Banner))
+	}
+	if input.UsageLimit != nil {
+		upd = upd.SetUsageLimit(*input.UsageLimit)
+	} else {
+		upd = upd.ClearUsageLimit()
+	}
+	if input.MaxUnitsPerCustomer != nil {
+		upd = upd.SetMaxUnitsPerCustomer(*input.MaxUnitsPerCustomer)
+	} else {
+		upd = upd.ClearMaxUnitsPerCustomer()
 	}
 	promo, err := upd.Save(r.Context())
 	if err != nil {
